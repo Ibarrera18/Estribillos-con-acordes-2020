@@ -9,6 +9,15 @@ BEMOLES = {'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#'}
 # Palabras que el evaluador ignorará para no descartar una línea de acordes
 ETIQUETAS_ESTRUCTURA = ['intro', 'coro', 'puente', 'final', 'estrofa', 'sigue', 'notas', 'del', 'al', 'fin', 'vuelta']
 
+def obtener_tono_base(tono_str):
+    """Extrae la nota musical base (A-G) de la cadena de texto del tono original."""
+    if not tono_str: return 'C' # Valor por defecto si falla
+    match = re.search(r'[A-G][#b]?', tono_str)
+    if match:
+        nota = match.group(0)
+        return BEMOLES.get(nota, nota)
+    return 'C'
+
 def es_linea_de_acordes(linea):
     linea_sin_parentesis = re.sub(r'\([^)]*\)', '', linea)
     palabras = linea_sin_parentesis.strip().split()
@@ -23,17 +32,19 @@ def es_linea_de_acordes(linea):
     patron_acorde = re.compile(r'^[A-G][#b]?(m|Maj|maj|M|dim|dis|aug|aum|sus|add)?\d*(/[A-G][#b]?)?$')
     
     for palabra in palabras:
-        # Quitamos puntuación final
         palabra_limpia = re.sub(r'[\.,:]+$', '', palabra)
-        # Hacemos una versión en minúsculas SOLO para buscar las etiquetas como "Intro"
         palabra_lower = palabra_limpia.lower()
         
-        # Si es una instrucción musical o un símbolo, la ignoramos y continuamos evaluando
         if palabra_lower in ETIQUETAS_ESTRUCTURA or palabra_limpia in simbolos:
             continue
+            
+        palabra_core = re.sub(r'^(?:/{2,3}|\|+|\[:|\[)+', '', palabra_limpia)
+        palabra_core = re.sub(r'(?:/{2,3}|\|+|:\]|\])+$', '', palabra_core)
         
-        if '-' in palabra_limpia and len(palabra_limpia) > 1:
-            sub_acordes = palabra_limpia.split('-')
+        if not palabra_core: continue
+        
+        if '-' in palabra_core and len(palabra_core) > 1:
+            sub_acordes = palabra_core.split('-')
             valido = True
             for sub in sub_acordes:
                 if not sub: continue
@@ -43,8 +54,7 @@ def es_linea_de_acordes(linea):
             if valido: continue
             return False
             
-        # AQUÍ ESTABA EL ERROR: Ahora usamos palabra_limpia (que conserva las mayúsculas)
-        if not patron_acorde.match(palabra_limpia):
+        if not patron_acorde.match(palabra_core):
             return False
             
     return True
@@ -60,10 +70,13 @@ def transponer_linea(linea, semitonos):
             continue
             
         es_acorde = False
-        if patron_acorde.match(parte):
+        parte_core = re.sub(r'^(?:/{2,3}|\|+|\[:|\[)+', '', parte)
+        parte_core = re.sub(r'(?:/{2,3}|\|+|:\]|\])+$', '', parte_core)
+        
+        if patron_acorde.match(parte_core):
             es_acorde = True
-        elif '-' in parte:
-            fragmentos = parte.replace('(', '').replace(')', '').split('-')
+        elif '-' in parte_core:
+            fragmentos = parte_core.replace('(', '').replace(')', '').split('-')
             if all(patron_acorde.match(f) for f in fragmentos if f):
                 es_acorde = True
                 
@@ -76,7 +89,7 @@ def transponer_linea(linea, semitonos):
                     return ESCALA[idx]
                 return nota
             
-            parte_transpuesta = re.sub(r'(?:^|(?<=[\/\-\(\[]))[A-G][#b]?', cambiar_nota, parte)
+            parte_transpuesta = re.sub(r'(?:^|(?<=[\/\-\(\[\|:]))[A-G][#b]?', cambiar_nota, parte)
             linea_nueva += parte_transpuesta
         else:
             linea_nueva += parte
@@ -96,7 +109,6 @@ def cargar_cancionero(ruta_pdf):
             
             lineas = texto.split('\n')
             for linea in lineas:
-                # Reparación de espacios "D/ F#"
                 patron_bajo = r'([A-G][#b]?(?:m|Maj|maj|M|dim|dis|aug|aum|sus|add)?\d*)\s*/\s*([A-G][#b]?)'
                 linea = re.sub(patron_bajo, r'\1/\2', linea)
                 
@@ -119,8 +131,8 @@ def cargar_cancionero(ruta_pdf):
     return canciones
 
 # --- 3. INTERFAZ GRÁFICA DE STREAMLIT ---
-st.set_page_config(page_title="Cancionero Dinámico", page_icon="🎶", layout="centered")
-st.title("Estribillos con acordes")
+st.set_page_config(page_title="ESTRIBILLOS CON ACORDES", page_icon="🎶", layout="wide")
+st.title("ESTRIBILLOS CON ACORDES")
 
 canciones = cargar_cancionero('ESTRIBILLOS CON ACORDES 2020.pdf')
 
@@ -128,26 +140,41 @@ if not canciones:
     st.warning("No se encontraron canciones. Verifica que el archivo PDF esté en la misma carpeta.")
 else:
     nombres_canciones = [c["titulo"] for c in canciones]
-    
     busqueda = st.text_input("🔍 Buscar canto por número o nombre:", "")
     nombres_filtrados = [nombre for nombre in nombres_canciones if busqueda.lower() in nombre.lower()]
     
     if not nombres_filtrados:
         st.error("No se encontró ningún canto con ese nombre o número.")
     else:
-        col1, col2 = st.columns([3, 1])
+        # Reestructuramos las columnas para hacer espacio a los nuevos controles
+        col1, col2 = st.columns([2, 1])
+        
         with col1:
             cancion_seleccionada = st.selectbox("Selecciona un canto:", nombres_filtrados)
-        with col2:
-            semitonos = st.number_input("Transponer (semitonos):", min_value=-12, max_value=12, value=0, step=1)
+            cancion = next(c for c in canciones if c["titulo"] == cancion_seleccionada)
+            st.markdown(f"**Tono Original:** `{cancion['tono_original']}`")
             
-        cancion = next(c for c in canciones if c["titulo"] == cancion_seleccionada)
-        
-        st.markdown(f"**Tono Original:** `{cancion['tono_original']}`")
+            # Obtenemos matemáticamente el tono base del canto seleccionado
+            tono_base_original = obtener_tono_base(cancion['tono_original'])
+            
+        with col2:
+            st.markdown("**Ajustes de Transposición**")
+            modo_transposicion = st.radio("Método:", ["Por Tono Destino", "Por Semitonos"], horizontal=True)
+            
+            if modo_transposicion == "Por Tono Destino":
+                # Si elegimos por tono, mostramos la escala musical
+                idx_actual = ESCALA.index(tono_base_original) if tono_base_original in ESCALA else 0
+                tono_destino = st.selectbox("¿En qué tono lo quieres tocar?", ESCALA, index=idx_actual)
+                
+                # Calculamos cuántos semitonos de diferencia hay entre el original y el destino
+                semitonos = (ESCALA.index(tono_destino) - idx_actual) % 12
+            else:
+                # Si elegimos por semitonos, dejamos el contador numérico (ideal para usar Capo)
+                semitonos = st.number_input("Cantidad de semitonos (Capo):", min_value=-12, max_value=12, value=0, step=1)
+                
         st.divider() 
         
         texto_final_html = "<div style='font-family: \"Courier New\", Courier, monospace; font-size: 16px; line-height: 1.5;'>"
-        
         patron_acorde_puro = re.compile(r'^[A-G][#b]?(m|Maj|maj|M|dim|dis|aug|aum|sus|add)?\d*(/[A-G][#b]?)?$')
         
         for i, verso in enumerate(cancion["versos"]):
@@ -158,7 +185,7 @@ else:
                 texto_final_html += "<br><br>"
             
             if verso["tipo"] == "acordes":
-                if not es_inicio_seccion and i > 0 and cancion["versos"][i-1]["tipo"] == "letra":
+                if not es_inicio_seccion and i > 0:
                     texto_final_html += "<br>" 
                     
                 nueva_linea = transponer_linea(verso["texto"], semitonos)
@@ -171,8 +198,10 @@ else:
                         linea_resaltada += parte.replace(" ", "&nbsp;")
                     else:
                         parte_limpia = re.sub(r'[\(\)\[\]\.,:]', '', parte)
-                        es_acorde_real = False
+                        parte_limpia = re.sub(r'^(?:/{2,3}|\|+)+', '', parte_limpia)
+                        parte_limpia = re.sub(r'(?:/{2,3}|\|+)+$', '', parte_limpia)
                         
+                        es_acorde_real = False
                         if patron_acorde_puro.match(parte_limpia):
                             es_acorde_real = True
                         elif '-' in parte_limpia:
