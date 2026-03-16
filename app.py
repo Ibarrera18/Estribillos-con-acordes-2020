@@ -6,6 +6,9 @@ import re
 ESCALA = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 BEMOLES = {'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#'}
 
+# Palabras que el evaluador ignorará para no descartar una línea de acordes
+ETIQUETAS_ESTRUCTURA = ['intro', 'coro', 'puente', 'final', 'estrofa', 'sigue', 'notas', 'del', 'al', 'fin', 'vuelta']
+
 def es_linea_de_acordes(linea):
     linea_sin_parentesis = re.sub(r'\([^)]*\)', '', linea)
     palabras = linea_sin_parentesis.strip().split()
@@ -17,14 +20,14 @@ def es_linea_de_acordes(linea):
     if not palabras: return False
     
     simbolos = ['//', '///', '|', '||', '-', '[:', ':]']
-    
-    # AQUÍ ESTÁ LA MAGIA NUEVA: Agregamos "dis" y "aum" a la lista de sufijos permitidos
     patron_acorde = re.compile(r'^[A-G][#b]?(m|Maj|maj|M|dim|dis|aug|aum|sus|add)?\d*(/[A-G][#b]?)?$')
     
     for palabra in palabras:
-        palabra_limpia = re.sub(r'[\.,:]+$', '', palabra)
+        palabra_limpia = re.sub(r'[\.,:]+$', '', palabra).lower()
         
-        if palabra_limpia in simbolos: continue
+        # Si es una instrucción musical o un símbolo, la ignoramos y continuamos evaluando
+        if palabra_limpia in ETIQUETAS_ESTRUCTURA or palabra_limpia in simbolos:
+            continue
         
         if '-' in palabra_limpia and len(palabra_limpia) > 1:
             sub_acordes = palabra_limpia.split('-')
@@ -45,8 +48,6 @@ def es_linea_de_acordes(linea):
 def transponer_linea(linea, semitonos):
     partes = re.split(r'(\s+)', linea)
     linea_nueva = ""
-    
-    # También actualizamos el patrón aquí para la transposición
     patron_acorde = re.compile(r'^[\(\[]?[A-G][#b]?(m|Maj|maj|M|dim|dis|aug|aum|sus|add)?\d*(/[A-G][#b]?)?[\)\]\.,:]?$')
     
     for parte in partes:
@@ -78,7 +79,7 @@ def transponer_linea(linea, semitonos):
             
     return linea_nueva
 
-# --- 2. EXTRACCIÓN DE DATOS (CON CACHÉ) ---
+# --- 2. EXTRACCIÓN DE DATOS ---
 @st.cache_data
 def cargar_cancionero(ruta_pdf):
     canciones = []
@@ -91,6 +92,10 @@ def cargar_cancionero(ruta_pdf):
             
             lineas = texto.split('\n')
             for linea in lineas:
+                # REPARACIÓN CLAVE: Quitar espacios indeseados como en "D/ F#" -> "D/F#"
+                patron_bajo = r'([A-G][#b]?(?:m|Maj|maj|M|dim|dis|aug|aum|sus|add)?\d*)\s*/\s*([A-G][#b]?)'
+                linea = re.sub(patron_bajo, r'\1/\2', linea)
+                
                 linea_limpia = linea.strip()
                 if not linea_limpia: continue
                 
@@ -110,8 +115,8 @@ def cargar_cancionero(ruta_pdf):
     return canciones
 
 # --- 3. INTERFAZ GRÁFICA DE STREAMLIT ---
-st.set_page_config(page_title="Estribillos con Acordes", page_icon="🎶", layout="centered")
-st.title("Estribillos con Acordes")
+st.set_page_config(page_title="Cancionero Dinámico", page_icon="🎶", layout="centered")
+st.title("Estribillos con acordes - Gethsemaní")
 
 canciones = cargar_cancionero('ESTRIBILLOS CON ACORDES 2020.pdf')
 
@@ -139,13 +144,23 @@ else:
         
         texto_final_html = "<div style='font-family: \"Courier New\", Courier, monospace; font-size: 16px; line-height: 1.5;'>"
         
+        patron_acorde_puro = re.compile(r'^[A-G][#b]?(m|Maj|maj|M|dim|dis|aug|aum|sus|add)?\d*(/[A-G][#b]?)?$')
+        
         for i, verso in enumerate(cancion["versos"]):
+            # Identificar si la línea arranca con Intro, Coro, Puente, etc.
+            texto_upper = verso["texto"].lstrip().upper()
+            es_inicio_seccion = any(texto_upper.startswith(etq.upper()) for etq in ["INTRO", "CORO", "PUENTE", "ESTROFA", "FINAL"])
+            
+            # Si es el inicio de una sección musical, agregamos un salto doble
+            if es_inicio_seccion and i > 0:
+                texto_final_html += "<br><br>"
+            
             if verso["tipo"] == "acordes":
-                if i > 0 and cancion["versos"][i-1]["tipo"] == "letra":
+                # Salto simple para separar letra de acordes
+                if not es_inicio_seccion and i > 0 and cancion["versos"][i-1]["tipo"] == "letra":
                     texto_final_html += "<br>" 
                     
                 nueva_linea = transponer_linea(verso["texto"], semitonos)
-                
                 partes = re.split(r'(\s+)', nueva_linea)
                 linea_resaltada = ""
                 
@@ -154,8 +169,26 @@ else:
                     if parte.isspace():
                         linea_resaltada += parte.replace(" ", "&nbsp;")
                     else:
-                        linea_resaltada += f'<span style="background-color: #fcfc99; color: #000; border-radius: 3px;">{parte}</span>'
-                
+                        parte_limpia = re.sub(r'[\(\)\[\]\.,:]', '', parte)
+                        es_acorde_real = False
+                        
+                        if patron_acorde_puro.match(parte_limpia):
+                            es_acorde_real = True
+                        elif '-' in parte_limpia:
+                            if all(patron_acorde_puro.match(f) for f in parte_limpia.split('-') if f):
+                                es_acorde_real = True
+                                
+                        # Aquí decidimos los colores
+                        if es_acorde_real:
+                            # Los acordes de amarillo pastel
+                            linea_resaltada += f'<span style="background-color: #fcfc99; color: #000; border-radius: 3px;">{parte}</span>'
+                        elif parte_limpia.lower() in ETIQUETAS_ESTRUCTURA:
+                            # Las instrucciones (Intro, Puente, Sigue) de color AZUL
+                            linea_resaltada += f'<span style="color: #2196f3; font-weight: bold;">{parte}</span>'
+                        else:
+                            # Cualquier otra cosa
+                            linea_resaltada += parte
+                            
                 texto_final_html += linea_resaltada + "<br>"
             else:
                 texto_final_html += verso["texto"].replace(" ", "&nbsp;") + "<br>"
