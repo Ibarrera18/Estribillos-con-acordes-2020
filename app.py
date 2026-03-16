@@ -98,120 +98,107 @@ def cargar_cancionero(ruta_pdf):
         if cancion_actual: canciones.append(cancion_actual)
     return canciones
 
-# --- 3. INTERFAZ GRÁFICA DE STREAMLIT ---
+# --- 3. INTERFAZ GRÁFICA ---
 st.set_page_config(page_title="ESTRIBILLOS CON ACORDES", page_icon="🎶", layout="wide")
 
-# CSS REFORZADO PARA ELIMINAR CUALQUIER RASTRO DE CONTROLES EN IMPRESIÓN
-css_impresion = """
+# CSS SEGURO PARA IMPRESIÓN
+st.markdown("""
 <style>
 @media print {
-    /* 1. Ocultamos TODA la estructura de Streamlit */
-    [data-testid="stHeader"], 
-    [data-testid="stSidebar"], 
-    footer, 
-    header, 
-    .no-print,
-    [data-testid="stVerticalBlock"] > div:not(.printable-content) {
+    /* Ocultar todo lo que no sea el área del canto */
+    .no-print, header, footer, [data-testid="stHeader"], [data-testid="stSidebar"] {
         display: none !important;
     }
-
-    /* 2. Forzamos que el contenido imprimible empiece hasta arriba */
-    .printable-content {
-        display: block !important;
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-
-    /* 3. Limpieza de página */
-    @page { margin: 1.5cm; size: auto; }
-    body, .stApp { background-color: white !important; }
-    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    .stApp { background-color: white !important; }
+    @page { margin: 1cm; }
 }
 </style>
+""", unsafe_allow_html=True)
+
+# --- ÁREA DE CONTROLES (NO SE IMPRIME) ---
+st.markdown('<div class="no-print">', unsafe_allow_html=True)
+st.title("ESTRIBILLOS CON ACORDES")
+canciones = cargar_cancionero('ESTRIBILLOS CON ACORDES 2020.pdf')
+
+if not canciones:
+    st.warning("No se encontraron canciones.")
+    st.stop()
+
+busqueda = st.text_input("🔍 Buscar canto:", "")
+nombres_filtrados = [n["titulo"] for n in canciones if busqueda.lower() in n["titulo"].lower()]
+
+if not nombres_filtrados:
+    st.error("No hay resultados.")
+    st.stop()
+
+col1, col2 = st.columns([2, 1])
+with col1:
+    sel = st.selectbox("Canto:", nombres_filtrados)
+    cancion = next(c for c in canciones if c["titulo"] == sel)
+    st.write(f"Tono Original: {cancion['tono_original']}")
+    t_base = obtener_tono_base(cancion['tono_original'])
+
+with col2:
+    modo = st.radio("Transponer:", ["Tono", "Semitonos"], horizontal=True)
+    if modo == "Tono":
+        idx = ESCALA.index(t_base) if t_base in ESCALA else 0
+        t_dest = st.selectbox("Destino:", ESCALA, index=idx)
+        semitonos = (ESCALA.index(t_dest) - idx) % 12
+        tono_actual_nombre = t_dest
+    else:
+        semitonos = st.number_input("Semitonos:", -12, 12, 0)
+        # Calcular nombre del tono actual para la impresión
+        idx_org = ESCALA.index(t_base) if t_base in ESCALA else 0
+        tono_actual_nombre = ESCALA[(idx_org + semitonos) % 12]
+
+    c_v1, c_v2 = st.columns(2)
+    tamano = c_v1.slider("Tamaño:", 12, 40, 18)
+    modo_vista = c_v2.radio("Vista:", ["Vertical", "Horizontal"], horizontal=True)
+
+st.divider()
+
+components.html("""
+    <script>function imprimir(){window.parent.print();}</script>
+    <div style="text-align: right;"><button onclick="imprimir()" style="background-color: #2196f3; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold;">🖨️ Imprimir Canto</button></div>
+""", height=50)
+st.markdown('</div>', unsafe_allow_html=True)
+
+# --- ÁREA DEL CANTO (SÍ SE IMPRIME) ---
+num_cols = 1 if modo_vista == "Vertical" else 2
+estilo_cols = f"column-count: {num_cols}; column-gap: 40px;" if num_cols > 1 else ""
+
+# Armamos el HTML
+html_final = f"""
+<div style='font-family: Consolas, monospace; font-size: {tamano}px; line-height: 1.5; color: black; {estilo_cols}'>
+    <h1 style='column-span: all; margin: 0;'>{cancion['titulo']}</h1>
+    <p style='column-span: all; margin-bottom: 20px;'><strong>Tono: {tono_actual_nombre}</strong></p>
 """
-st.markdown(css_impresion, unsafe_allow_html=True)
-
-# TODO ESTE BLOQUE SE OCULTARÁ EN LA IMPRESIÓN
-with st.container():
-    st.markdown('<div class="no-print">', unsafe_allow_html=True)
-    st.title("ESTRIBILLOS CON ACORDES")
-    canciones = cargar_cancionero('ESTRIBILLOS CON ACORDES 2020.pdf')
-
-    if not canciones:
-        st.warning("No se encontraron canciones.")
-        st.stop()
-
-    nombres_canciones = [c["titulo"] for c in canciones]
-    busqueda = st.text_input("🔍 Buscar canto por número o nombre:", "")
-    nombres_filtrados = [nombre for nombre in nombres_canciones if busqueda.lower() in nombre.lower()]
-    
-    if not nombres_filtrados:
-        st.error("No se encontró nada.")
-        st.stop()
-
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        cancion_seleccionada = st.selectbox("Selecciona un canto:", nombres_filtrados)
-        cancion = next(c for c in canciones if c["titulo"] == cancion_seleccionada)
-        st.write(f"**Tono Original:** {cancion['tono_original']}")
-        tono_base_original = obtener_tono_base(cancion['tono_original'])
-        
-    with col2:
-        st.write("**Ajustes de Transposición**")
-        modo = st.radio("Método:", ["Tono", "Semitonos"], horizontal=True)
-        if modo == "Tono":
-            idx = ESCALA.index(tono_base_original) if tono_base_original in ESCALA else 0
-            t_dest = st.selectbox("Tono destino:", ESCALA, index=idx)
-            semitonos = (ESCALA.index(t_dest) - idx) % 12
-        else:
-            semitonos = st.number_input("Semitonos:", -12, 12, 0)
-            
-        st.write("**Visualización**")
-        c1, c2 = st.columns(2)
-        tamano = c1.slider("Tamaño de letra:", 12, 40, 18)
-        modo_vista = c2.radio("Modo de lectura:", ["Vertical", "Horizontal"], index=0, horizontal=True)
-        num_columnas = 1 if modo_vista == "Vertical" else 2
-
-    st.divider()
-    
-    components.html(
-        """<script>function imprimir(){window.parent.print();}</script>
-        <div style="text-align: right;"><button onclick="imprimir()" style="background-color: #2196f3; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold;">🖨️ Imprimir Canto</button></div>""",
-        height=50
-    )
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# ESTE ES EL BLOQUE QUE SÍ SE IMPRIMIRÁ (Clase: printable-content)
-estilo_columnas = f"column-count: {num_columnas}; column-gap: 50px;" if num_columnas > 1 else ""
-texto_html = f"<div class='printable-content' style='font-family: Consolas, monospace; font-size: {tamano}px; line-height: 1.6; {estilo_columnas}'>"
-texto_html += f"<h1 style='column-span: all; margin-top: 0; padding-top: 0;'>{cancion['titulo']}</h1>"
 
 patron_puro = re.compile(r'^[A-G][#b]?(m|Maj|maj|M|dim|dis|aug|aum|sus|add)?\d*(/[A-G][#b]?)?$')
+
 for i, verso in enumerate(cancion["versos"]):
     u = verso["texto"].lstrip().upper()
     if any(u.startswith(e) for e in ["INTRO", "CORO", "PUENTE", "ESTROFA", "FINAL"]) and i > 0:
-        texto_html += "<br><br>"
+        html_final += "<br><br>"
+    
     if verso["tipo"] == "acordes":
-        if i > 0: texto_html += "<br>" 
+        if i > 0: html_final += "<br>"
         nl = transponer_linea(verso["texto"], semitonos)
         for p in re.split(r'(\s+)', nl):
             if not p: continue
-            if p.isspace(): texto_html += p.replace(" ", "&nbsp;")
+            if p.isspace(): html_final += p.replace(" ", "&nbsp;")
             else:
                 pl = re.sub(r'[\(\)\[\]\.,:]', '', p)
                 pl = re.sub(r'^(?:/{2,3}|\|+)+', '', pl)
                 pl = re.sub(r'(?:/{2,3}|\|+)+$', '', pl)
                 if patron_puro.match(pl) or ('-' in pl and all(patron_puro.match(f) for f in pl.split('-') if f)):
-                    texto_html += f'<span style="background-color: #fcfc99; color: black; border-radius: 3px;">{p}</span>'
+                    html_final += f'<span style="background-color: #fcfc99; color: black; border-radius: 3px;">{p}</span>'
                 elif pl.lower() in ETIQUETAS_ESTRUCTURA:
-                    texto_html += f'<span style="color: #2196f3; font-weight: bold;">{p}</span>'
-                else: texto_html += p
-        texto_html += "<br>"
-    else: texto_html += verso["texto"].replace(" ", "&nbsp;") + "<br>"
+                    html_final += f'<span style="color: #2196f3; font-weight: bold;">{p}</span>'
+                else: html_final += p
+        html_final += "<br>"
+    else:
+        html_final += verso["texto"].replace(" ", "&nbsp;") + "<br>"
 
-texto_html += "</div>"
-st.markdown(texto_html, unsafe_allow_html=True)
+html_final += "</div>"
+st.markdown(html_final, unsafe_allow_html=True)
