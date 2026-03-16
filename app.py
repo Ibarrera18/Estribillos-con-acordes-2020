@@ -138,16 +138,14 @@ with col2:
 
 st.divider()
 
-# --- DESPLIEGUE DEL CANTO CON ANTI-CORTE ---
+# --- DESPLIEGUE DEL CANTO CON LÓGICA DE AGRUPACIÓN ---
 num_cols = 1 if modo_vista == "Vertical" else 2
 estilo_cols = f"column-count: {num_cols}; column-gap: 50px;" if num_cols > 1 else ""
 
-# CSS especial para evitar que se partan los bloques de acordes/letra
 html_canto = f"""
 <style>
-    .bloque-verso {{
+    .par-musical {{
         break-inside: avoid-column;
-        page-break-inside: avoid;
         display: block;
         margin-bottom: 0px;
     }}
@@ -156,38 +154,55 @@ html_canto = f"""
     <h2 style='column-span: all; margin-top: 0;'>{cancion['titulo']}</h2>
 """
 
-patron_puro = re.compile(r'^[A-G][#b]?(m|Maj|maj|M|dim|dis|aug|aum|sus|add)?\d*(/[A-G][#b]?)?$')
-
-for i, verso in enumerate(cancion["versos"]):
-    u = verso["texto"].lstrip().upper()
-    
-    # Abrimos un "bloque-verso" para cada línea
-    # Esto evita que los acordes queden en una columna y su letra en otra
-    html_canto += "<div class='bloque-verso'>"
-    
-    if any(u.startswith(e) for e in ["INTRO", "CORO", "PUENTE", "ESTROFA", "FINAL"]) and i > 0:
-        html_canto += "<br><br>"
-    
+def procesar_linea(verso, semitonos):
     if verso["tipo"] == "acordes":
-        if i > 0: html_canto += "<br>"
         nl = transponer_linea(verso["texto"], semitonos)
+        res = ""
         for p in re.split(r'(\s+)', nl):
             if not p: continue
-            if p.isspace(): html_canto += p.replace(" ", "&nbsp;")
+            if p.isspace(): res += p.replace(" ", "&nbsp;")
             else:
                 pl = re.sub(r'[\(\)\[\]\.,:]', '', p)
                 pl = re.sub(r'^(?:/{2,3}|\|+)+', '', pl)
                 pl = re.sub(r'(?:/{2,3}|\|+)+$', '', pl)
+                patron_puro = re.compile(r'^[A-G][#b]?(m|Maj|maj|M|dim|dis|aug|aum|sus|add)?\d*(/[A-G][#b]?)?$')
                 if patron_puro.match(pl) or ('-' in pl and all(patron_puro.match(f) for f in pl.split('-') if f)):
-                    html_canto += f'<span style="background-color: #fcfc99; color: black; border-radius: 3px;">{p}</span>'
+                    res += f'<span style="background-color: #fcfc99; color: black; border-radius: 3px;">{p}</span>'
                 elif pl.lower() in ETIQUETAS_ESTRUCTURA:
-                    html_canto += f'<span style="color: #2196f3; font-weight: bold;">{p}</span>'
-                else: html_canto += p
-        html_canto += "<br>"
+                    res += f'<span style="color: #2196f3; font-weight: bold;">{p}</span>'
+                else: res += p
+        return res + "<br>"
     else:
-        html_canto += verso["texto"].replace(" ", "&nbsp;") + "<br>"
-    
-    html_canto += "</div>" # Cerramos el bloque protector
+        return verso["texto"].replace(" ", "&nbsp;") + "<br>"
+
+# --- LÓGICA DE "PEGAMENTO" ---
+i = 0
+versos = cancion["versos"]
+while i < len(versos):
+    # Si es acordes y la que sigue es letra, las envolvemos juntas
+    if versos[i]["tipo"] == "acordes" and (i + 1 < len(versos)) and versos[i+1]["tipo"] == "letra":
+        html_canto += "<div class='par-musical'>"
+        # Si hay una etiqueta tipo INTRO/CORO arriba, dejamos espacio
+        u = versos[i]["texto"].lstrip().upper()
+        if any(u.startswith(e) for e in ["INTRO", "CORO", "PUENTE", "ESTROFA", "FINAL"]) and i > 0:
+            html_canto += "<br><br>"
+        
+        html_canto += "<br>" # Espacio antes de acordes
+        html_canto += procesar_linea(versos[i], semitonos)
+        html_canto += procesar_linea(versos[i+1], semitonos)
+        html_canto += "</div>"
+        i += 2 # Saltamos dos líneas porque ya las procesamos
+    else:
+        # Si es una línea sola (letra sola o acordes solos)
+        html_canto += "<div class='par-musical'>"
+        u = versos[i]["texto"].lstrip().upper()
+        if any(u.startswith(e) for e in ["INTRO", "CORO", "PUENTE", "ESTROFA", "FINAL"]) and i > 0:
+            html_canto += "<br><br>"
+        
+        if versos[i]["tipo"] == "acordes": html_canto += "<br>"
+        html_canto += procesar_linea(versos[i], semitonos)
+        html_canto += "</div>"
+        i += 1
 
 html_canto += "</div>"
 st.markdown(html_canto, unsafe_allow_html=True)
