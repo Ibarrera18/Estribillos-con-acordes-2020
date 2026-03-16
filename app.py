@@ -107,12 +107,11 @@ if not canciones:
     st.warning("No se encontró el archivo PDF.")
     st.stop()
 
-# --- BUSCADOR Y SELECCIÓN ---
 busqueda = st.text_input("🔍 Buscar canto (número o nombre):", "")
 nombres_filtrados = [n["titulo"] for n in canciones if busqueda.lower() in n["titulo"].lower()]
 
 if not nombres_filtrados:
-    st.error("No hay resultados para tu búsqueda.")
+    st.error("No hay resultados.")
     st.stop()
 
 col1, col2 = st.columns([2, 1])
@@ -139,11 +138,20 @@ with col2:
 
 st.divider()
 
-# --- DESPLIEGUE DEL CANTO ---
+# --- DESPLIEGUE DEL CANTO CON ANTI-CORTE ---
 num_cols = 1 if modo_vista == "Vertical" else 2
 estilo_cols = f"column-count: {num_cols}; column-gap: 50px;" if num_cols > 1 else ""
 
+# CSS especial para evitar que se partan los bloques de acordes/letra
 html_canto = f"""
+<style>
+    .bloque-verso {{
+        break-inside: avoid-column;
+        page-break-inside: avoid;
+        display: block;
+        margin-bottom: 0px;
+    }}
+</style>
 <div style='font-family: Consolas, monospace; font-size: {tamano}px; line-height: 1.6; {estilo_cols}'>
     <h2 style='column-span: all; margin-top: 0;'>{cancion['titulo']}</h2>
 """
@@ -152,6 +160,11 @@ patron_puro = re.compile(r'^[A-G][#b]?(m|Maj|maj|M|dim|dis|aug|aum|sus|add)?\d*(
 
 for i, verso in enumerate(cancion["versos"]):
     u = verso["texto"].lstrip().upper()
+    
+    # Abrimos un "bloque-verso" para cada línea
+    # Esto evita que los acordes queden en una columna y su letra en otra
+    html_canto += "<div class='bloque-verso'>"
+    
     if any(u.startswith(e) for e in ["INTRO", "CORO", "PUENTE", "ESTROFA", "FINAL"]) and i > 0:
         html_canto += "<br><br>"
     
@@ -173,6 +186,8 @@ for i, verso in enumerate(cancion["versos"]):
         html_canto += "<br>"
     else:
         html_canto += verso["texto"].replace(" ", "&nbsp;") + "<br>"
+    
+    html_canto += "</div>" # Cerramos el bloque protector
 
 html_canto += "</div>"
 st.markdown(html_canto, unsafe_allow_html=True)
