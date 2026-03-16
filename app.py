@@ -7,50 +7,78 @@ ESCALA = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 BEMOLES = {'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#'}
 
 def es_linea_de_acordes(linea):
-    palabras = linea.strip().split()
+    linea_sin_parentesis = re.sub(r'\([^)]*\)', '', linea)
+    palabras = linea_sin_parentesis.strip().split()
+    
+    if not palabras:
+        linea_sin_parentesis = linea.replace('(', '').replace(')', '')
+        palabras = linea_sin_parentesis.strip().split()
+        
     if not palabras: return False
     
-    # Símbolos estructurales que usan los músicos
     simbolos = ['//', '///', '|', '||', '-', '[:', ':]']
     
-    # Patrón a prueba de balas: acepta sus4, add9, m(b5), etc.
-    patron_acorde = re.compile(r'^[A-G][#b]?(m|Maj|maj|M|dim|aug|sus|add)?\d*(/[A-G][#b]?)?(\([^)]+\))?$')
+    # AQUÍ ESTÁ LA MAGIA NUEVA: Agregamos "dis" y "aum" a la lista de sufijos permitidos
+    patron_acorde = re.compile(r'^[A-G][#b]?(m|Maj|maj|M|dim|dis|aug|aum|sus|add)?\d*(/[A-G][#b]?)?$')
     
     for palabra in palabras:
-        if palabra in simbolos:
-            continue
-            
-        # Si hay guiones uniendo acordes (ej. G-D), los separamos para evaluarlos
-        if '-' in palabra and len(palabra) > 1:
-            sub_acordes = palabra.split('-')
+        palabra_limpia = re.sub(r'[\.,:]+$', '', palabra)
+        
+        if palabra_limpia in simbolos: continue
+        
+        if '-' in palabra_limpia and len(palabra_limpia) > 1:
+            sub_acordes = palabra_limpia.split('-')
             valido = True
             for sub in sub_acordes:
                 if not sub: continue
                 if not patron_acorde.match(sub) and sub not in simbolos:
                     valido = False
                     break
-            if valido:
-                continue
+            if valido: continue
             return False
             
-        if not patron_acorde.match(palabra):
+        if not patron_acorde.match(palabra_limpia):
             return False
+            
     return True
 
 def transponer_linea(linea, semitonos):
-    def cambiar_nota(match):
-        nota = match.group(0)
-        if nota in BEMOLES: nota = BEMOLES[nota]
-        if nota in ESCALA:
-            indice_actual = ESCALA.index(nota)
-            nuevo_indice = (indice_actual + semitonos) % 12
-            return ESCALA[nuevo_indice]
-        return nota
-        
-    # Regex ultrasensible: solo transpone letras A-G si están al inicio, o después de un espacio, /, -, ( o [
-    return re.sub(r'(?:^|(?<=[\s/\-\(\[]))[A-G][#b]?', cambiar_nota, linea)
+    partes = re.split(r'(\s+)', linea)
+    linea_nueva = ""
+    
+    # También actualizamos el patrón aquí para la transposición
+    patron_acorde = re.compile(r'^[\(\[]?[A-G][#b]?(m|Maj|maj|M|dim|dis|aug|aum|sus|add)?\d*(/[A-G][#b]?)?[\)\]\.,:]?$')
+    
+    for parte in partes:
+        if not parte or parte.isspace():
+            linea_nueva += parte
+            continue
+            
+        es_acorde = False
+        if patron_acorde.match(parte):
+            es_acorde = True
+        elif '-' in parte:
+            fragmentos = parte.replace('(', '').replace(')', '').split('-')
+            if all(patron_acorde.match(f) for f in fragmentos if f):
+                es_acorde = True
+                
+        if es_acorde:
+            def cambiar_nota(m):
+                nota = m.group(0)
+                if nota in BEMOLES: nota = BEMOLES[nota]
+                if nota in ESCALA:
+                    idx = (ESCALA.index(nota) + semitonos) % 12
+                    return ESCALA[idx]
+                return nota
+            
+            parte_transpuesta = re.sub(r'(?:^|(?<=[\/\-\(\[]))[A-G][#b]?', cambiar_nota, parte)
+            linea_nueva += parte_transpuesta
+        else:
+            linea_nueva += parte
+            
+    return linea_nueva
 
-# --- 2. EXTRACCIÓN DE DATOS ---
+# --- 2. EXTRACCIÓN DE DATOS (CON CACHÉ) ---
 @st.cache_data
 def cargar_cancionero(ruta_pdf):
     canciones = []
@@ -66,7 +94,6 @@ def cargar_cancionero(ruta_pdf):
                 linea_limpia = linea.strip()
                 if not linea_limpia: continue
                 
-                # Tolerancia por si algún canto no tiene el punto después del número
                 if re.match(r'^\d+[\.\-]?\s', linea_limpia):
                     if cancion_actual: canciones.append(cancion_actual)
                     cancion_actual = {"titulo": linea_limpia, "tono_original": "", "versos": []}
@@ -83,8 +110,8 @@ def cargar_cancionero(ruta_pdf):
     return canciones
 
 # --- 3. INTERFAZ GRÁFICA DE STREAMLIT ---
-st.set_page_config(page_title="Cancionero Dinámico", page_icon="🎶", layout="centered")
-st.title("🎶 Cancionero Dinámico")
+st.set_page_config(page_title="Estribillos con Acordes", page_icon="🎶", layout="centered")
+st.title("Estribillos con Acordes")
 
 canciones = cargar_cancionero('ESTRIBILLOS CON ACORDES 2020.pdf')
 
