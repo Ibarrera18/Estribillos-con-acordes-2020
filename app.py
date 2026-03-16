@@ -101,12 +101,32 @@ def cargar_cancionero(ruta_pdf):
 # --- 3. INTERFAZ GRÁFICA DE STREAMLIT ---
 st.set_page_config(page_title="ESTRIBILLOS CON ACORDES", page_icon="🎶", layout="wide")
 
+# CSS REFORZADO PARA ELIMINAR CUALQUIER RASTRO DE CONTROLES EN IMPRESIÓN
 css_impresion = """
 <style>
 @media print {
-    .no-print, header, footer, [data-testid="stHeader"], [data-testid="stSidebar"], .stApp > header {
+    /* 1. Ocultamos TODA la estructura de Streamlit */
+    [data-testid="stHeader"], 
+    [data-testid="stSidebar"], 
+    footer, 
+    header, 
+    .no-print,
+    [data-testid="stVerticalBlock"] > div:not(.printable-content) {
         display: none !important;
     }
+
+    /* 2. Forzamos que el contenido imprimible empiece hasta arriba */
+    .printable-content {
+        display: block !important;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* 3. Limpieza de página */
     @page { margin: 1.5cm; size: auto; }
     body, .stApp { background-color: white !important; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
@@ -115,6 +135,7 @@ css_impresion = """
 """
 st.markdown(css_impresion, unsafe_allow_html=True)
 
+# TODO ESTE BLOQUE SE OCULTARÁ EN LA IMPRESIÓN
 with st.container():
     st.markdown('<div class="no-print">', unsafe_allow_html=True)
     st.title("ESTRIBILLOS CON ACORDES")
@@ -152,9 +173,7 @@ with st.container():
         st.write("**Visualización**")
         c1, c2 = st.columns(2)
         tamano = c1.slider("Tamaño de letra:", 12, 40, 18)
-        # NUEVO BOTÓN DE MODO DE LECTURA
         modo_vista = c2.radio("Modo de lectura:", ["Vertical", "Horizontal"], index=0, horizontal=True)
-        # Definimos el número de columnas basado en la elección
         num_columnas = 1 if modo_vista == "Vertical" else 2
 
     st.divider()
@@ -166,10 +185,10 @@ with st.container():
     )
     st.markdown('</div>', unsafe_allow_html=True)
 
-# EL CANTO
+# ESTE ES EL BLOQUE QUE SÍ SE IMPRIMIRÁ (Clase: printable-content)
 estilo_columnas = f"column-count: {num_columnas}; column-gap: 50px;" if num_columnas > 1 else ""
-texto_html = f"<div style='font-family: Consolas, monospace; font-size: {tamano}px; line-height: 1.6; {estilo_columnas}'>"
-texto_html += f"<h1 style='column-span: all; margin-top: 0;'>{cancion['titulo']}</h1>"
+texto_html = f"<div class='printable-content' style='font-family: Consolas, monospace; font-size: {tamano}px; line-height: 1.6; {estilo_columnas}'>"
+texto_html += f"<h1 style='column-span: all; margin-top: 0; padding-top: 0;'>{cancion['titulo']}</h1>"
 
 patron_puro = re.compile(r'^[A-G][#b]?(m|Maj|maj|M|dim|dis|aug|aum|sus|add)?\d*(/[A-G][#b]?)?$')
 for i, verso in enumerate(cancion["versos"]):
