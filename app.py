@@ -10,8 +10,7 @@ BEMOLES = {'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#'}
 ETIQUETAS_ESTRUCTURA = ['intro', 'coro', 'puente', 'final', 'estrofa', 'sigue', 'notas', 'del', 'al', 'fin', 'vuelta']
 
 def obtener_tono_base(tono_str):
-    """Extrae la nota musical base (A-G) de la cadena de texto del tono original."""
-    if not tono_str: return 'C' # Valor por defecto si falla
+    if not tono_str: return 'C' 
     match = re.search(r'[A-G][#b]?', tono_str)
     if match:
         nota = match.group(0)
@@ -146,15 +145,12 @@ else:
     if not nombres_filtrados:
         st.error("No se encontró ningún canto con ese nombre o número.")
     else:
-        # Reestructuramos las columnas para hacer espacio a los nuevos controles
         col1, col2 = st.columns([2, 1])
         
         with col1:
             cancion_seleccionada = st.selectbox("Selecciona un canto:", nombres_filtrados)
             cancion = next(c for c in canciones if c["titulo"] == cancion_seleccionada)
             st.markdown(f"**Tono Original:** `{cancion['tono_original']}`")
-            
-            # Obtenemos matemáticamente el tono base del canto seleccionado
             tono_base_original = obtener_tono_base(cancion['tono_original'])
             
         with col2:
@@ -162,19 +158,18 @@ else:
             modo_transposicion = st.radio("Método:", ["Por Tono Destino", "Por Semitonos"], horizontal=True)
             
             if modo_transposicion == "Por Tono Destino":
-                # Si elegimos por tono, mostramos la escala musical
                 idx_actual = ESCALA.index(tono_base_original) if tono_base_original in ESCALA else 0
                 tono_destino = st.selectbox("¿En qué tono lo quieres tocar?", ESCALA, index=idx_actual)
-                
-                # Calculamos cuántos semitonos de diferencia hay entre el original y el destino
                 semitonos = (ESCALA.index(tono_destino) - idx_actual) % 12
             else:
-                # Si elegimos por semitonos, dejamos el contador numérico (ideal para usar Capo)
                 semitonos = st.number_input("Cantidad de semitonos (Capo):", min_value=-12, max_value=12, value=0, step=1)
+                
+            st.markdown("**Ajustes Visuales**")
+            tamano_letra = st.slider("Tamaño del texto:", min_value=12, max_value=40, value=18, step=2)
                 
         st.divider() 
         
-        texto_final_html = "<div style='font-family: \"Courier New\", Courier, monospace; font-size: 16px; line-height: 1.5;'>"
+        texto_final_html = f"<div style='font-family: Consolas, \"Courier New\", monospace; font-size: {tamano_letra}px; line-height: 1.6;'>"
         patron_acorde_puro = re.compile(r'^[A-G][#b]?(m|Maj|maj|M|dim|dis|aug|aum|sus|add)?\d*(/[A-G][#b]?)?$')
         
         for i, verso in enumerate(cancion["versos"]):
