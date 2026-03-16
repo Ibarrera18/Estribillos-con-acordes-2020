@@ -1,7 +1,6 @@
 import streamlit as st
 import pdfplumber
 import re
-import streamlit.components.v1 as components
 
 # --- 1. CONFIGURACIÓN Y CONSTANTES ---
 ESCALA = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
@@ -98,80 +97,55 @@ def cargar_cancionero(ruta_pdf):
         if cancion_actual: canciones.append(cancion_actual)
     return canciones
 
-# --- 3. INTERFAZ GRÁFICA ---
+# --- 2. INTERFAZ GRÁFICA ---
 st.set_page_config(page_title="ESTRIBILLOS CON ACORDES", page_icon="🎶", layout="wide")
 
-# CSS SEGURO PARA IMPRESIÓN
-st.markdown("""
-<style>
-@media print {
-    /* Ocultar todo lo que no sea el área del canto */
-    .no-print, header, footer, [data-testid="stHeader"], [data-testid="stSidebar"] {
-        display: none !important;
-    }
-    .stApp { background-color: white !important; }
-    @page { margin: 1cm; }
-}
-</style>
-""", unsafe_allow_html=True)
-
-# --- ÁREA DE CONTROLES (NO SE IMPRIME) ---
-st.markdown('<div class="no-print">', unsafe_allow_html=True)
 st.title("ESTRIBILLOS CON ACORDES")
 canciones = cargar_cancionero('ESTRIBILLOS CON ACORDES 2020.pdf')
 
 if not canciones:
-    st.warning("No se encontraron canciones.")
+    st.warning("No se encontró el archivo PDF.")
     st.stop()
 
-busqueda = st.text_input("🔍 Buscar canto:", "")
+# --- BUSCADOR Y SELECCIÓN ---
+busqueda = st.text_input("🔍 Buscar canto (número o nombre):", "")
 nombres_filtrados = [n["titulo"] for n in canciones if busqueda.lower() in n["titulo"].lower()]
 
 if not nombres_filtrados:
-    st.error("No hay resultados.")
+    st.error("No hay resultados para tu búsqueda.")
     st.stop()
 
 col1, col2 = st.columns([2, 1])
 with col1:
-    sel = st.selectbox("Canto:", nombres_filtrados)
+    sel = st.selectbox("Selecciona el canto:", nombres_filtrados)
     cancion = next(c for c in canciones if c["titulo"] == sel)
-    st.write(f"Tono Original: {cancion['tono_original']}")
+    st.write(f"**Tono Original:** {cancion['tono_original']}")
     t_base = obtener_tono_base(cancion['tono_original'])
 
 with col2:
-    modo = st.radio("Transponer:", ["Tono", "Semitonos"], horizontal=True)
-    if modo == "Tono":
+    st.write("**Transposición**")
+    modo = st.radio("Método:", ["Tono Destino", "Semitonos"], horizontal=True)
+    if modo == "Tono Destino":
         idx = ESCALA.index(t_base) if t_base in ESCALA else 0
-        t_dest = st.selectbox("Destino:", ESCALA, index=idx)
+        t_dest = st.selectbox("Tocar en:", ESCALA, index=idx)
         semitonos = (ESCALA.index(t_dest) - idx) % 12
-        tono_actual_nombre = t_dest
     else:
-        semitonos = st.number_input("Semitonos:", -12, 12, 0)
-        # Calcular nombre del tono actual para la impresión
-        idx_org = ESCALA.index(t_base) if t_base in ESCALA else 0
-        tono_actual_nombre = ESCALA[(idx_org + semitonos) % 12]
+        semitonos = st.number_input("Semitonos (Capo):", -12, 12, 0)
 
+    st.write("**Visualización**")
     c_v1, c_v2 = st.columns(2)
-    tamano = c_v1.slider("Tamaño:", 12, 40, 18)
-    modo_vista = c_v2.radio("Vista:", ["Vertical", "Horizontal"], horizontal=True)
+    tamano = c_v1.slider("Tamaño de letra:", 12, 40, 18)
+    modo_vista = c_v2.radio("Modo de lectura:", ["Vertical", "Horizontal"], horizontal=True)
 
 st.divider()
 
-components.html("""
-    <script>function imprimir(){window.parent.print();}</script>
-    <div style="text-align: right;"><button onclick="imprimir()" style="background-color: #2196f3; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold;">🖨️ Imprimir Canto</button></div>
-""", height=50)
-st.markdown('</div>', unsafe_allow_html=True)
-
-# --- ÁREA DEL CANTO (SÍ SE IMPRIME) ---
+# --- DESPLIEGUE DEL CANTO ---
 num_cols = 1 if modo_vista == "Vertical" else 2
-estilo_cols = f"column-count: {num_cols}; column-gap: 40px;" if num_cols > 1 else ""
+estilo_cols = f"column-count: {num_cols}; column-gap: 50px;" if num_cols > 1 else ""
 
-# Armamos el HTML
-html_final = f"""
-<div style='font-family: Consolas, monospace; font-size: {tamano}px; line-height: 1.5; color: black; {estilo_cols}'>
-    <h1 style='column-span: all; margin: 0;'>{cancion['titulo']}</h1>
-    <p style='column-span: all; margin-bottom: 20px;'><strong>Tono: {tono_actual_nombre}</strong></p>
+html_canto = f"""
+<div style='font-family: Consolas, monospace; font-size: {tamano}px; line-height: 1.6; {estilo_cols}'>
+    <h2 style='column-span: all; margin-top: 0;'>{cancion['titulo']}</h2>
 """
 
 patron_puro = re.compile(r'^[A-G][#b]?(m|Maj|maj|M|dim|dis|aug|aum|sus|add)?\d*(/[A-G][#b]?)?$')
@@ -179,26 +153,26 @@ patron_puro = re.compile(r'^[A-G][#b]?(m|Maj|maj|M|dim|dis|aug|aum|sus|add)?\d*(
 for i, verso in enumerate(cancion["versos"]):
     u = verso["texto"].lstrip().upper()
     if any(u.startswith(e) for e in ["INTRO", "CORO", "PUENTE", "ESTROFA", "FINAL"]) and i > 0:
-        html_final += "<br><br>"
+        html_canto += "<br><br>"
     
     if verso["tipo"] == "acordes":
-        if i > 0: html_final += "<br>"
+        if i > 0: html_canto += "<br>"
         nl = transponer_linea(verso["texto"], semitonos)
         for p in re.split(r'(\s+)', nl):
             if not p: continue
-            if p.isspace(): html_final += p.replace(" ", "&nbsp;")
+            if p.isspace(): html_canto += p.replace(" ", "&nbsp;")
             else:
                 pl = re.sub(r'[\(\)\[\]\.,:]', '', p)
                 pl = re.sub(r'^(?:/{2,3}|\|+)+', '', pl)
                 pl = re.sub(r'(?:/{2,3}|\|+)+$', '', pl)
                 if patron_puro.match(pl) or ('-' in pl and all(patron_puro.match(f) for f in pl.split('-') if f)):
-                    html_final += f'<span style="background-color: #fcfc99; color: black; border-radius: 3px;">{p}</span>'
+                    html_canto += f'<span style="background-color: #fcfc99; color: black; border-radius: 3px;">{p}</span>'
                 elif pl.lower() in ETIQUETAS_ESTRUCTURA:
-                    html_final += f'<span style="color: #2196f3; font-weight: bold;">{p}</span>'
-                else: html_final += p
-        html_final += "<br>"
+                    html_canto += f'<span style="color: #2196f3; font-weight: bold;">{p}</span>'
+                else: html_canto += p
+        html_canto += "<br>"
     else:
-        html_final += verso["texto"].replace(" ", "&nbsp;") + "<br>"
+        html_canto += verso["texto"].replace(" ", "&nbsp;") + "<br>"
 
-html_final += "</div>"
-st.markdown(html_final, unsafe_allow_html=True)
+html_canto += "</div>"
+st.markdown(html_canto, unsafe_allow_html=True)
