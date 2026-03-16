@@ -1,6 +1,7 @@
 import streamlit as st
 import pdfplumber
 import re
+import streamlit.components.v1 as components
 
 # --- 1. CONFIGURACIÓN Y CONSTANTES ---
 ESCALA = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
@@ -132,31 +133,26 @@ def cargar_cancionero(ruta_pdf):
 st.set_page_config(page_title="ESTRIBILLOS CON ACORDES", page_icon="🎶", layout="wide")
 
 # --- MAGIA CSS PARA LA IMPRESIÓN ---
-# Este bloque le dice al navegador web qué ocultar cuando se presione "Imprimir"
 css_impresion = """
 <style>
 @media print {
-    /* Ocultar elementos de la interfaz que no son el canto */
     header, [data-testid="stSidebar"], [data-testid="stHeader"], 
     [data-testid="stTextInput"], [data-testid="stSelectbox"], 
     [data-testid="stRadio"], [data-testid="stSlider"], 
-    [data-testid="stNumberInput"], hr, .imprimir-btn, h1 {
+    [data-testid="stNumberInput"], hr, h1, iframe {
         display: none !important;
     }
     
-    /* Forzar fondo blanco y letras negras para ahorrar tinta, pero respetar el marcador amarillo */
     body, .stApp {
         background-color: white !important;
         color: black !important;
     }
     
-    /* Obligar a la impresora a imprimir los colores de fondo (amarillo) */
     * {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
     
-    /* Ajustar márgenes de la hoja de papel */
     @page {
         margin: 2cm;
     }
@@ -203,21 +199,24 @@ else:
                 
         st.divider() 
         
-        # --- BOTÓN DE IMPRESIÓN ---
-        # Un botón en HTML puro que manda a llamar la función window.print()
-        boton_imprimir = """
-        <div class="imprimir-btn" style="text-align: right; margin-bottom: 10px;">
-            <button onclick="window.print()" style="background-color: #2196f3; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; font-family: sans-serif;">
-                🖨️ Imprimir Canto
-            </button>
-        </div>
-        """
-        st.markdown(boton_imprimir, unsafe_allow_html=True)
+        # --- BOTÓN DE IMPRESIÓN (AHORA SÍ FUNCIONA) ---
+        components.html(
+            """
+            <script>
+            function imprimir() {
+                window.parent.print();
+            }
+            </script>
+            <div style="text-align: right; font-family: sans-serif;">
+                <button onclick="imprimir()" style="background-color: #2196f3; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                    🖨️ Imprimir Canto
+                </button>
+            </div>
+            """,
+            height=55
+        )
         
-        # Inyectamos el tamaño elegido por el usuario directamente al HTML
         texto_final_html = f"<div style='font-family: Consolas, \"Courier New\", monospace; font-size: {tamano_letra}px; line-height: 1.6;'>"
-        
-        # Agregamos el título de la canción para que también salga en la hoja impresa
         texto_final_html += f"<h2>{cancion['titulo']}</h2><br>"
         
         patron_acorde_puro = re.compile(r'^[A-G][#b]?(m|Maj|maj|M|dim|dis|aug|aum|sus|add)?\d*(/[A-G][#b]?)?$')
