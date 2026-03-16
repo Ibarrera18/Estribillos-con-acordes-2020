@@ -195,11 +195,16 @@ else:
                 semitonos = st.number_input("Cantidad de semitonos (Capo):", min_value=-12, max_value=12, value=0, step=1)
                 
             st.markdown("**Ajustes Visuales**")
-            tamano_letra = st.slider("Tamaño del texto:", min_value=12, max_value=40, value=18, step=2)
+            # LA MAGIA NUEVA: Control de columnas
+            col_tam, col_cols = st.columns(2)
+            with col_tam:
+                tamano_letra = st.slider("Tamaño del texto:", min_value=12, max_value=40, value=16, step=2)
+            with col_cols:
+                num_columnas = st.slider("Columnas para la letra:", min_value=1, max_value=4, value=2, step=1)
                 
         st.divider() 
         
-        # --- BOTÓN DE IMPRESIÓN (AHORA SÍ FUNCIONA) ---
+        # --- BOTÓN DE IMPRESIÓN ---
         components.html(
             """
             <script>
@@ -216,8 +221,11 @@ else:
             height=55
         )
         
-        texto_final_html = f"<div style='font-family: Consolas, \"Courier New\", monospace; font-size: {tamano_letra}px; line-height: 1.6;'>"
-        texto_final_html += f"<h2>{cancion['titulo']}</h2><br>"
+        # Inyectamos el CSS de las columnas dinámicas
+        texto_final_html = f"<div style='font-family: Consolas, \"Courier New\", monospace; font-size: {tamano_letra}px; line-height: 1.6; column-count: {num_columnas}; column-gap: 50px;'>"
+        
+        # Hacemos que el título abarque todo el ancho arriba de las columnas
+        texto_final_html += f"<h2 style='column-span: all; margin-bottom: 20px;'>{cancion['titulo']}</h2>"
         
         patron_acorde_puro = re.compile(r'^[A-G][#b]?(m|Maj|maj|M|dim|dis|aug|aum|sus|add)?\d*(/[A-G][#b]?)?$')
         
