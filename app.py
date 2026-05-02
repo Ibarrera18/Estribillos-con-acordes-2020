@@ -609,109 +609,90 @@ CSS_CLARO = """
     --red       : #c04020;
 """
 
-def get_css(tema='oscuro', modo_pres=False):
-    vars_tema = CSS_CLARO if tema == 'claro' else CSS_OSCURO
-    pres_hide = """
-    .sb-header, .stat-row, .stDownloadButton,
-    [data-testid="stBottom"] { display:none !important; }
-    .canto-wrap { border:none !important; padding:0 !important;
-                  background:transparent !important; }
-    """ if modo_pres else ""
+
+# ─────────────────────────────────────────────────────────────────────
+#  CSS
+# ─────────────────────────────────────────────────────────────────────
+def get_css(tema='oscuro'):
+    v = CSS_CLARO if tema == 'claro' else CSS_OSCURO
     return f"""
 <style>
-:root {{{vars_tema}
+:root {{{v}
     --mono  : 'JetBrains Mono','Fira Code','Consolas',monospace;
     --serif : 'EB Garamond',Georgia,serif;
 }}
-.stApp,[data-testid="stAppViewContainer"],
-html, body {{ background: var(--bg) !important; color: var(--text) !important; }}
-#MainMenu, footer, header {{ visibility: hidden; }}
-[data-testid="stToolbar"] {{ display: none; }}
-[data-testid="stSidebar"] {{ display: none !important; }}
-.stTextInput input, .stNumberInput input {{
-    background: var(--surf2) !important; border: 1px solid var(--border) !important;
-    border-radius: 6px !important; color: var(--text) !important;
-    font-family: var(--mono) !important; font-size: .84rem !important;
-}}
-.stTextInput input:focus, .stNumberInput input:focus {{
-    border-color: var(--accent) !important;
-    box-shadow: 0 0 0 2px rgba(140,100,30,.18) !important;
-}}
-.stSelectbox > div > div {{
-    background: var(--surf2) !important; border: 1px solid var(--border) !important;
-    border-radius: 6px !important; color: var(--text) !important;
-    font-family: var(--mono) !important; font-size: .82rem !important;
-}}
-.stSelectbox label, .stTextInput label, .stSlider label,
-.stRadio label, .stNumberInput label {{
-    color: var(--muted) !important; font-size: .76rem !important;
-}}
-.stSlider [data-baseweb="slider"] [role="slider"] {{
-    background: var(--accent) !important; border-color: var(--accent) !important;
-}}
-.stButton > button {{
-    background: var(--surf2) !important; border: 1px solid var(--border) !important;
-    color: var(--text) !important; border-radius: 6px !important;
-    font-family: var(--mono) !important; font-size: .79rem !important;
-    transition: border-color .14s, background .14s;
-}}
-.stButton > button:hover {{
-    border-color: var(--accent) !important; background: var(--surf) !important;
-}}
-.stDownloadButton > button {{
-    background: var(--accdim) !important; border: 1px solid var(--accent) !important;
-    color: var(--cfg) !important; border-radius: 6px !important;
-    font-family: var(--mono) !important; font-size: .79rem !important;
-}}
-hr {{ border-color: var(--border) !important; margin: 6px 0 !important; }}
-.sb-header {{
-    display: flex; align-items: baseline; gap: 14px;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 14px; margin-bottom: 18px;
-}}
-.sb-header h1 {{
-    font-family: var(--serif); font-size: 2rem; font-weight: 400;
-    color: var(--accent); margin: 0; letter-spacing: .04em;
-}}
-.sb-header span {{
-    font-family: var(--mono); font-size: .68rem; color: var(--muted);
-    letter-spacing: .14em; text-transform: uppercase;
-}}
-.stat-row {{ display: flex; gap: 9px; margin: 5px 0 16px; flex-wrap: wrap; }}
-.stat-badge {{
-    padding: 3px 10px; border-radius: 4px; background: var(--surf2);
-    border: 1px solid var(--border); font-family: var(--mono);
-    font-size: .68rem; color: var(--muted); letter-spacing: .05em;
-}}
-.stat-badge b {{ color: var(--accent); }}
-.tono-pill {{
-    display: inline-block; padding: 2px 10px; border-radius: 20px;
-    background: var(--cbg); border: 1px solid var(--accdim);
-    color: var(--cfg); font-family: var(--mono); font-size: .8rem;
-}}
-.tono-m {{ border-color: #4a6a9a !important; color: #6a98c8 !important; }}
-.tr-up   {{ color: var(--green); font-family: var(--mono); font-size: .77rem; margin: 3px 0; }}
-.tr-down {{ color: var(--red);   font-family: var(--mono); font-size: .77rem; margin: 3px 0; }}
-.canto-wrap {{
-    background: var(--surf); border: 1px solid var(--border); border-radius: 10px;
-    padding: 24px 28px 34px; margin-top: 14px;
-}}
-.canto-titulo {{
-    font-family: var(--serif); font-size: 1.5rem; font-weight: 400;
-    color: var(--accent); margin-bottom: 16px; letter-spacing: .02em;
-    border-bottom: 1px solid var(--border); padding-bottom: 10px;
-}}
-.acorde {{
-    background: var(--cbg); color: var(--cfg);
-    border-radius: 3px; padding: 0 3px; font-weight: 600;
-}}
-.etiqueta {{ color: var(--lblfg); font-weight: 700; }}
-.par {{
-    break-inside: avoid-column; page-break-inside: avoid;
-    display: block; margin-bottom: 2px;
-}}
-.par-sep {{ height: 14px; break-inside: avoid-column; }}
-{pres_hide}
+.stApp,[data-testid="stAppViewContainer"],html,body{{
+    background:var(--bg)!important;color:var(--text)!important;}}
+#MainMenu,footer,header{{visibility:hidden;}}
+[data-testid="stToolbar"]{{display:none;}}
+[data-testid="stSidebar"]{{display:none!important;}}
+.stTextInput input,.stNumberInput input{{
+    background:var(--surf2)!important;border:1px solid var(--border)!important;
+    border-radius:6px!important;color:var(--text)!important;
+    font-family:var(--mono)!important;font-size:.84rem!important;}}
+.stTextInput input:focus,.stNumberInput input:focus{{
+    border-color:var(--accent)!important;
+    box-shadow:0 0 0 2px rgba(140,100,30,.18)!important;}}
+.stSelectbox>div>div{{
+    background:var(--surf2)!important;border:1px solid var(--border)!important;
+    border-radius:6px!important;color:var(--text)!important;
+    font-family:var(--mono)!important;font-size:.82rem!important;}}
+.stSelectbox label,.stTextInput label,.stSlider label,
+.stRadio label,.stNumberInput label{{
+    color:var(--muted)!important;font-size:.76rem!important;}}
+.stSlider [data-baseweb="slider"] [role="slider"]{{
+    background:var(--accent)!important;border-color:var(--accent)!important;}}
+.stButton>button{{
+    background:var(--surf2)!important;border:1px solid var(--border)!important;
+    color:var(--text)!important;border-radius:6px!important;
+    font-family:var(--mono)!important;font-size:.79rem!important;
+    transition:border-color .14s,background .14s;}}
+.stButton>button:hover{{border-color:var(--accent)!important;background:var(--surf)!important;}}
+.stDownloadButton>button{{
+    background:var(--accdim)!important;border:1px solid var(--accent)!important;
+    color:var(--cfg)!important;border-radius:6px!important;
+    font-family:var(--mono)!important;font-size:.79rem!important;}}
+hr{{border-color:var(--border)!important;margin:6px 0!important;}}
+.sb-header{{display:flex;align-items:baseline;gap:14px;
+    border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:18px;}}
+.sb-header h1{{font-family:var(--serif);font-size:2rem;font-weight:400;
+    color:var(--accent);margin:0;letter-spacing:.04em;}}
+.sb-header span{{font-family:var(--mono);font-size:.68rem;color:var(--muted);
+    letter-spacing:.14em;text-transform:uppercase;}}
+.stat-row{{display:flex;gap:9px;margin:5px 0 16px;flex-wrap:wrap;}}
+.stat-badge{{padding:3px 10px;border-radius:4px;background:var(--surf2);
+    border:1px solid var(--border);font-family:var(--mono);
+    font-size:.68rem;color:var(--muted);letter-spacing:.05em;}}
+.stat-badge b{{color:var(--accent);}}
+.tono-pill{{display:inline-block;padding:2px 10px;border-radius:20px;
+    background:var(--cbg);border:1px solid var(--accdim);
+    color:var(--cfg);font-family:var(--mono);font-size:.8rem;}}
+.tono-m{{border-color:#4a6a9a!important;color:#6a98c8!important;}}
+.tr-up{{color:var(--green);font-family:var(--mono);font-size:.77rem;margin:3px 0;}}
+.tr-down{{color:var(--red);font-family:var(--mono);font-size:.77rem;margin:3px 0;}}
+.canto-wrap{{background:var(--surf);border:1px solid var(--border);border-radius:10px;
+    padding:24px 28px 34px;margin-top:14px;}}
+.canto-titulo{{font-family:var(--serif);font-size:1.5rem;font-weight:400;
+    color:var(--accent);margin-bottom:16px;letter-spacing:.02em;
+    border-bottom:1px solid var(--border);padding-bottom:10px;}}
+.acorde{{background:var(--cbg);color:var(--cfg);border-radius:3px;padding:0 3px;font-weight:600;}}
+.etiqueta{{color:var(--lblfg);font-weight:700;}}
+.par{{break-inside:avoid-column;page-break-inside:avoid;display:block;margin-bottom:2px;}}
+.par-sep{{height:14px;break-inside:avoid-column;}}
+/* setlist items */
+.sl-item{{
+    display:flex;align-items:center;gap:10px;
+    padding:8px 12px;border-radius:6px;
+    background:var(--surf2);border:1px solid var(--border);
+    margin-bottom:6px;cursor:grab;transition:border-color .12s;}}
+.sl-item:hover{{border-color:var(--accent);}}
+.sl-item.activo{{border-color:var(--accent);background:var(--cbg);}}
+.sl-num{{font-family:var(--mono);font-size:.68rem;color:var(--muted);
+    min-width:22px;text-align:right;}}
+.sl-titulo{{flex:1;font-family:var(--mono);font-size:.78rem;
+    color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}}
+.sl-tono{{font-size:.65rem;color:var(--cfg);background:var(--cbg);
+    border:1px solid var(--accdim);border-radius:10px;padding:1px 7px;}}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -719,7 +700,205 @@ hr {{ border-color: var(--border) !important; margin: 6px 0 !important; }}
 """
 
 # ─────────────────────────────────────────────────────────────────────
-#  APP
+#  MODO PRESENTACIÓN — HTML autónomo fullscreen
+# ─────────────────────────────────────────────────────────────────────
+def render_presentacion(setlist_data, idx_actual, tema):
+    """
+    setlist_data: list of {titulo, tono_orig, tono_dest, semitonos, es_menor, versos}
+    Renderiza fullscreen con botones prev/next flotantes.
+    """
+    import streamlit.components.v1 as components
+
+    items_json = json.dumps(setlist_data, ensure_ascii=False)
+    bg     = '#0d0d0f' if tema == 'oscuro' else '#f5f2eb'
+    surf   = '#141418' if tema == 'oscuro' else '#ffffff'
+    text   = '#e8e4d8' if tema == 'oscuro' else '#1a1810'
+    accent = '#c49b30' if tema == 'oscuro' else '#8a6010'
+    cbg    = '#1e1808' if tema == 'oscuro' else '#fdf3d0'
+    cfg    = '#f0c060' if tema == 'oscuro' else '#7a4800'
+    muted  = '#54525f' if tema == 'oscuro' else '#7a7060'
+    border = '#2a2a35' if tema == 'oscuro' else '#d4cdb8'
+
+    html = f"""<!DOCTYPE html><html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*{{margin:0;padding:0;box-sizing:border-box;}}
+body{{background:{bg};color:{text};font-family:'JetBrains Mono',monospace;
+     overflow-x:hidden;min-height:100vh;}}
+#header{{
+    position:sticky;top:0;z-index:100;
+    background:{surf};border-bottom:1px solid {border};
+    padding:10px 20px;display:flex;align-items:center;
+    justify-content:space-between;gap:16px;
+}}
+#titulo-header{{
+    font-family:'EB Garamond',serif;font-size:1.2rem;
+    color:{accent};flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}}
+#tono-header{{
+    font-size:.72rem;color:{cfg};background:{cbg};
+    border:1px solid #5e4718;border-radius:12px;padding:2px 10px;
+    font-family:'JetBrains Mono',monospace;white-space:nowrap;
+}}
+#progress{{
+    font-family:'JetBrains Mono',monospace;font-size:.7rem;
+    color:{muted};white-space:nowrap;
+}}
+#canto-body{{
+    padding:28px 32px 120px;
+    font-size:18px;line-height:1.7;
+}}
+.acorde{{color:{cfg};font-weight:700;}}
+.etiqueta{{color:#7cb4f0;font-weight:700;}}
+/* Nav flotante */
+#nav{{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+    display:flex;gap:12px;align-items:center;
+    background:{surf};border:1px solid {border};
+    border-radius:40px;padding:8px 20px;
+    box-shadow:0 4px 24px rgba(0,0,0,.5);z-index:200;
+}}
+.nav-btn{{
+    background:none;border:1px solid {border};
+    color:{text};border-radius:20px;padding:6px 18px;
+    font-family:'JetBrains Mono',monospace;font-size:.8rem;
+    cursor:pointer;transition:border-color .14s,background .14s;
+}}
+.nav-btn:hover{{border-color:{accent};background:{cbg};}}
+.nav-btn:disabled{{opacity:.3;cursor:default;}}
+#nav-titulo{{
+    font-size:.72rem;color:{muted};
+    max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    text-align:center;
+}}
+#exit-btn{{
+    position:fixed;top:12px;right:16px;z-index:300;
+    background:none;border:1px solid {border};color:{muted};
+    border-radius:6px;padding:4px 12px;font-size:.72rem;
+    cursor:pointer;font-family:'JetBrains Mono',monospace;
+}}
+#exit-btn:hover{{border-color:{accent};color:{accent};}}
+/* setlist lateral mini */
+#setlist-mini{{
+    position:fixed;left:0;top:50%;transform:translateY(-50%);
+    display:flex;flex-direction:column;gap:4px;
+    padding:8px 6px;z-index:150;
+}}
+.dot{{
+    width:8px;height:8px;border-radius:50%;
+    background:{border};cursor:pointer;transition:background .12s,transform .12s;
+}}
+.dot.activo{{background:{accent};transform:scale(1.4);}}
+.dot:hover{{background:{accent};}}
+</style>
+</head>
+<body>
+<div id="header">
+  <div id="titulo-header"></div>
+  <div id="tono-header"></div>
+  <div id="progress"></div>
+</div>
+<div id="canto-body"></div>
+<div id="setlist-mini"></div>
+<div id="nav">
+  <button class="nav-btn" id="prev-btn" onclick="navegar(-1)">&#8592; Anterior</button>
+  <div id="nav-titulo"></div>
+  <button class="nav-btn" id="next-btn" onclick="navegar(1)">Siguiente &#8594;</button>
+</div>
+<button id="exit-btn" onclick="salir()">✕ Salir</button>
+
+<script>
+const ITEMS = {items_json};
+let idx = {idx_actual};
+
+const ETIQUETAS = ['intro','coro','puente','final','estrofa','sigue'];
+
+function escapar(t){{return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}}
+
+function renderCanto(){{
+    const item = ITEMS[idx];
+    // Header
+    document.getElementById('titulo-header').textContent = item.titulo;
+    const sfx = item.es_menor ? 'm' : '';
+    document.getElementById('tono-header').textContent =
+        item.tono_orig + '  →  ' + item.tono_dest + sfx;
+    document.getElementById('progress').textContent =
+        (idx+1) + ' / ' + ITEMS.length;
+    // Nav
+    document.getElementById('prev-btn').disabled = idx === 0;
+    document.getElementById('next-btn').disabled = idx === ITEMS.length - 1;
+    const nextItem = idx < ITEMS.length-1 ? ITEMS[idx+1].titulo : '';
+    document.getElementById('nav-titulo').textContent = nextItem ? '→ ' + nextItem.substring(0,30) : '';
+    // Dots
+    const mini = document.getElementById('setlist-mini');
+    mini.innerHTML = '';
+    ITEMS.forEach((_,i) => {{
+        const d = document.createElement('div');
+        d.className = 'dot' + (i===idx ? ' activo' : '');
+        d.title = ITEMS[i].titulo;
+        d.onclick = () => {{ idx=i; renderCanto(); }};
+        mini.appendChild(d);
+    }});
+    // Cuerpo
+    let html = '';
+    const versos = item.versos;
+    let i = 0;
+    while(i < versos.length){{
+        const v = versos[i];
+        const tu = v.texto.trim().toUpperCase();
+        const esSecc = ['INTRO','CORO','PUENTE','ESTROFA','FINAL'].some(e => tu.startsWith(e));
+        if(esSecc && i > 0) html += '<br>';
+        if(v.tipo==='acordes' && i+1<versos.length && versos[i+1].tipo==='letra'){{
+            html += '<div style="margin-bottom:2px">';
+            html += renderAcordes(v.texto);
+            html += '<br>' + escapar(versos[i+1].texto) + '</div>';
+            i+=2;
+        }} else {{
+            if(v.tipo==='acordes') html += '<div>' + renderAcordes(v.texto) + '</div>';
+            else html += '<div>' + escapar(v.texto) + '</div>';
+            i++;
+        }}
+    }}
+    document.getElementById('canto-body').innerHTML = html;
+    window.scrollTo(0,0);
+}}
+
+function renderAcordes(linea){{
+    return linea.split(/(\s+)/).map(p => {{
+        if(!p || /^\s+$/.test(p)) return p.replace(/ /g,'&nbsp;');
+        let pl = p.replace(/[\(\)\[\]\.,:]/g,'').replace(/^(\/{{2,3}}|\|+)+/,'').replace(/(\/{{2,3}}|\|+)+$/,'');
+        if(/^[A-G][#b]?(m|Maj|maj|M|dim|dis|aug|aum|sus|add)?[\d]*(\/[A-G][#b]?)?$/.test(pl))
+            return '<span class="acorde">'+p+'</span>';
+        if(ETIQUETAS.includes(pl.toLowerCase()))
+            return '<span class="etiqueta">'+p+'</span>';
+        return escapar(p);
+    }}).join('');
+}}
+
+function navegar(dir){{
+    idx = Math.max(0, Math.min(ITEMS.length-1, idx+dir));
+    renderCanto();
+}}
+
+function salir(){{
+    window.parent.postMessage({{type:'salir_presentacion'}},'*');
+}}
+
+document.addEventListener('keydown', e => {{
+    if(e.key==='ArrowRight'||e.key==='ArrowDown') navegar(1);
+    if(e.key==='ArrowLeft'||e.key==='ArrowUp') navegar(-1);
+    if(e.key==='Escape') salir();
+}});
+
+renderCanto();
+</script>
+</body></html>"""
+
+    components.html(html, height=700, scrolling=True)
+
+
+# ─────────────────────────────────────────────────────────────────────
+#  APP PRINCIPAL
 # ─────────────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title='Estribillos con Acordes',
@@ -728,8 +907,10 @@ st.set_page_config(
     initial_sidebar_state='collapsed'
 )
 
-for k, v in [('favoritos', []), ('seleccion', None),
-             ('presentacion', False), ('tema', 'oscuro')]:
+for k, v in [('seleccion', None), ('tema', 'oscuro'),
+             ('setlist', []),        # [{titulo, semitonos, t_dest, es_menor}]
+             ('modo', 'cancionero'), # 'cancionero' | 'setlist' | 'presentacion'
+             ('pres_idx', 0)]:
     if k not in st.session_state:
         st.session_state[k] = v
 
@@ -742,186 +923,324 @@ if not canciones:
 
 titulos = [c['titulo'] for c in canciones]
 
-# ── CSS ───────────────────────────────────────────────────────────────
-st.markdown(get_css(st.session_state.tema, st.session_state.presentacion),
-            unsafe_allow_html=True)
+# ─────────────────────────────────────────────────────────────────────
+#  MODO PRESENTACIÓN — ocupa toda la pantalla
+# ─────────────────────────────────────────────────────────────────────
+if st.session_state.modo == 'presentacion':
+    st.markdown(get_css(st.session_state.tema), unsafe_allow_html=True)
+    # Ocultar TODO excepto el componente
+    st.markdown("""
+    <style>
+    .stApp > div > div > div > div:first-child { padding-top: 0 !important; }
+    [data-testid="stVerticalBlock"] > div { gap: 0 !important; }
+    </style>""", unsafe_allow_html=True)
 
-# ── HEADER ───────────────────────────────────────────────────────────
+    # Construir datos del setlist para el componente
+    setlist_data = []
+    for item in st.session_state.setlist:
+        c = next((x for x in canciones if x['titulo'] == item['titulo']), None)
+        if c:
+            t_base, es_menor = obtener_tono_base(c['tono'])
+            setlist_data.append({
+                'titulo'   : c['titulo'],
+                'tono_orig': c['tono'],
+                'tono_dest': item['t_dest'],
+                'semitonos': item['semitonos'],
+                'es_menor' : es_menor,
+                'versos'   : c['versos']
+            })
+
+    render_presentacion(setlist_data, st.session_state.pres_idx, st.session_state.tema)
+
+    if st.button('✕ Salir de presentación', key='salir_pres'):
+        st.session_state.modo = 'setlist'
+        st.rerun()
+    st.stop()
+
+# ─────────────────────────────────────────────────────────────────────
+#  LAYOUT NORMAL
+# ─────────────────────────────────────────────────────────────────────
+st.markdown(get_css(st.session_state.tema), unsafe_allow_html=True)
+
+# ── HEADER ────────────────────────────────────────────────────────────
 st.markdown(
     '<div class="sb-header">'
     '<h1>📖 Estribillos con Acordes</h1>'
     '<span>Cancionero Digital · 2020</span>'
-    '</div>',
-    unsafe_allow_html=True
-)
-st.markdown(
-    f'<div class="stat-row">'
-    f'<div class="stat-badge"><b>{len(canciones)}</b>&nbsp;cantos</div>'
-    f'<div class="stat-badge"><b>126</b>&nbsp;páginas</div>'
-    f'<div class="stat-badge">⭐&nbsp;<b>{len(st.session_state.favoritos)}</b>&nbsp;favoritos</div>'
-    f'</div>',
-    unsafe_allow_html=True
+    '</div>', unsafe_allow_html=True
 )
 
-# ── SELECTOR + FAVORITO ───────────────────────────────────────────────
-def on_select_change():
-    st.session_state.seleccion = st.session_state.sel_widget
+# ── TABS: Cancionero / Setlist ────────────────────────────────────────
+tab_names = ['🎵 Cancionero', f'📋 Setlist ({len(st.session_state.setlist)})']
+tab1, tab2 = st.tabs(tab_names)
 
-idx_def = 0
-if st.session_state.seleccion and st.session_state.seleccion in titulos:
-    idx_def = titulos.index(st.session_state.seleccion)
+# ═══════════════════════════════════════════════════════════════════
+#  TAB 1 — CANCIONERO
+# ═══════════════════════════════════════════════════════════════════
+with tab1:
+    # Stats
+    st.markdown(
+        f'<div class="stat-row">'
+        f'<div class="stat-badge"><b>{len(canciones)}</b>&nbsp;cantos</div>'
+        f'<div class="stat-badge">📋&nbsp;<b>{len(st.session_state.setlist)}</b>&nbsp;en setlist</div>'
+        f'</div>', unsafe_allow_html=True
+    )
 
-col_sel, col_fav = st.columns([5, 1])
-with col_sel:
-    st.selectbox('Canto', titulos, index=idx_def,
-                 label_visibility='collapsed',
-                 key='sel_widget',
-                 on_change=on_select_change)
+    # Selector + agregar al setlist
+    def on_select():
+        st.session_state.seleccion = st.session_state.sel_widget
 
-seleccion = st.session_state.seleccion or titulos[0]
-cancion   = next(c for c in canciones if c['titulo'] == seleccion)
-t_base, es_menor = obtener_tono_base(cancion['tono'])
-idx_base  = ESCALA.index(t_base) if t_base in ESCALA else 0
-es_fav    = seleccion in st.session_state.favoritos
+    idx_def = 0
+    if st.session_state.seleccion and st.session_state.seleccion in titulos:
+        idx_def = titulos.index(st.session_state.seleccion)
 
-with col_fav:
-    fav_label = '⭐ Quitar' if es_fav else '☆ Guardar'
-    if st.button(fav_label, use_container_width=True, key='btn_fav'):
-        if es_fav:
-            st.session_state.favoritos = [f for f in st.session_state.favoritos if f != seleccion]
+    col_sel, col_add = st.columns([5, 1])
+    with col_sel:
+        st.selectbox('Canto', titulos, index=idx_def,
+                     label_visibility='collapsed',
+                     key='sel_widget', on_change=on_select)
+
+    seleccion = st.session_state.seleccion or titulos[0]
+    cancion   = next(c for c in canciones if c['titulo'] == seleccion)
+    t_base, es_menor = obtener_tono_base(cancion['tono'])
+    idx_base  = ESCALA.index(t_base) if t_base in ESCALA else 0
+    ya_en_sl  = any(x['titulo'] == seleccion for x in st.session_state.setlist)
+
+    with col_add:
+        if ya_en_sl:
+            if st.button('✓ En setlist', use_container_width=True, key='btn_add', disabled=True):
+                pass
         else:
-            if seleccion not in st.session_state.favoritos:
-                st.session_state.favoritos.append(seleccion)
-        st.rerun()
+            if st.button('+ Setlist', use_container_width=True, key='btn_add'):
+                # Agrega con la transposición actual (se determina abajo, usamos defaults)
+                pass  # se maneja después de calcular semitonos
 
-# ── CONTROLES ─────────────────────────────────────────────────────────
-c1, c2, c3, c4, c5, c6, c7 = st.columns([1.2, 1.4, 1, 1, 1, 1, 1])
+    # Controles
+    c1, c2, c3, c4, c5, c6 = st.columns([1.2, 1.4, 1, 1, 1, 1])
 
-with c1:
-    mc = 'tono-m' if es_menor else ''
-    ml = f"{cancion['tono']}{'  (menor)' if es_menor else ''}"
-    st.markdown(
-        f'<div style="padding-top:8px;font-family:monospace;font-size:.78rem;'
-        f'color:var(--muted,#54525f)">Tono:&nbsp;'
-        f'<span class="tono-pill {mc}">{ml or "—"}</span></div>',
-        unsafe_allow_html=True
+    with c1:
+        mc = 'tono-m' if es_menor else ''
+        ml = f"{cancion['tono']}{'  (menor)' if es_menor else ''}"
+        st.markdown(
+            f'<div style="padding-top:8px;font-family:monospace;font-size:.78rem;'
+            f'color:var(--muted,#54525f)">Tono:&nbsp;'
+            f'<span class="tono-pill {mc}">{ml or "—"}</span></div>',
+            unsafe_allow_html=True
+        )
+    with c2:
+        modo_t = st.radio('M', ['Tono destino', 'Semitonos (capo)'],
+                          horizontal=True, label_visibility='collapsed', key='modo_t')
+    with c3:
+        if modo_t == 'Tono destino':
+            t_dest    = st.selectbox('T', ESCALA, index=idx_base,
+                                     label_visibility='collapsed', key='sel_tono')
+            semitonos = (ESCALA.index(t_dest) - idx_base) % 12
+        else:
+            semitonos = int(st.number_input('S', -12, 12, 0,
+                                            label_visibility='collapsed', key='num_semi'))
+            t_dest    = ESCALA[(idx_base + semitonos) % 12]
+    with c4:
+        tamano = st.slider('F', 13, 42, 18, label_visibility='collapsed', key='slider_font')
+    with c5:
+        cols_v = st.radio('Vista', ['1 columna', '2 columnas'],
+                          horizontal=True, label_visibility='collapsed', key='radio_cols')
+    with c6:
+        tema_label = '☀️ Claro' if st.session_state.tema == 'oscuro' else '🌙 Oscuro'
+        if st.button(tema_label, use_container_width=True, key='btn_tema'):
+            st.session_state.tema = 'claro' if st.session_state.tema == 'oscuro' else 'oscuro'
+            st.rerun()
+
+    # Botón agregar al setlist (ahora que tenemos semitonos)
+    if not ya_en_sl:
+        # Re-render the button properly using a form approach via session state
+        if st.session_state.get('_add_trigger'):
+            st.session_state.setlist.append({
+                'titulo'  : seleccion,
+                'semitonos': semitonos,
+                't_dest'  : t_dest,
+                'es_menor': es_menor
+            })
+            st.session_state._add_trigger = False
+            st.rerun()
+
+    # Lógica real del botón agregar
+    if not ya_en_sl:
+        if st.button(f'➕ Agregar "{seleccion[:35]}…" al setlist en {t_dest}', key='btn_add2'):
+            st.session_state.setlist.append({
+                'titulo'  : seleccion,
+                'semitonos': semitonos,
+                't_dest'  : t_dest,
+                'es_menor': es_menor
+            })
+            st.rerun()
+    else:
+        st.info(f'✓ Ya está en el setlist en tono {t_dest}')
+
+    # Indicador transposición
+    delta = semitonos if semitonos <= 6 else semitonos - 12
+    if delta != 0:
+        sfx   = 'm' if es_menor else ''
+        signo = '▲' if delta > 0 else '▼'
+        clase = 'tr-up' if delta > 0 else 'tr-down'
+        st.markdown(
+            f'<div class="{clase}">{signo} {abs(delta)} '
+            f'semitono{"s" if abs(delta)>1 else ""}'
+            f'&nbsp;·&nbsp;{t_base}{sfx} → {t_dest}{sfx}</div>',
+            unsafe_allow_html=True
+        )
+
+    # PDF
+    sfx_pdf   = 'm' if es_menor else ''
+    pdf_bytes = generar_pdf(cancion, semitonos, t_dest, es_menor)
+    nombre_f  = re.sub(r'[^\w\s-]', '', cancion['titulo'])[:38].strip().replace(' ', '_')
+    st.download_button(
+        label     = f'⬇ PDF — {t_dest}{sfx_pdf}',
+        data      = pdf_bytes,
+        file_name = f'{nombre_f}_{t_dest}{sfx_pdf}.pdf',
+        mime      = 'application/pdf',
+        key       = 'dl_pdf'
     )
 
-with c2:
-    modo_t = st.radio('M', ['Tono destino', 'Semitonos (capo)'],
-                      horizontal=True, label_visibility='collapsed', key='modo_t')
+    st.divider()
 
-with c3:
-    if modo_t == 'Tono destino':
-        t_dest    = st.selectbox('T', ESCALA, index=idx_base,
-                                 label_visibility='collapsed', key='sel_tono')
-        semitonos = (ESCALA.index(t_dest) - idx_base) % 12
-    else:
-        semitonos = int(st.number_input('S', -12, 12, 0,
-                                        label_visibility='collapsed', key='num_semi'))
-        t_dest    = ESCALA[(idx_base + semitonos) % 12]
+    # Render canto
+    num_cols  = 2 if cols_v == '2 columnas' else 1
+    col_style = f'column-count:{num_cols};column-gap:52px;' if num_cols > 1 else ''
 
-with c4:
-    tamano = st.slider('F', 13, 42, 18,
-                       label_visibility='collapsed', key='slider_font')
-
-with c5:
-    cols_v = st.radio('Vista', ['1 columna', '2 columnas'],
-                      horizontal=True, label_visibility='collapsed', key='radio_cols')
-
-with c6:
-    if st.button('🎬 Salir' if st.session_state.presentacion else '🎬 Presentar',
-                 use_container_width=True, key='btn_pres'):
-        st.session_state.presentacion = not st.session_state.presentacion
-        st.rerun()
-
-with c7:
-    tema_label = '☀️ Claro' if st.session_state.tema == 'oscuro' else '🌙 Oscuro'
-    if st.button(tema_label, use_container_width=True, key='btn_tema'):
-        st.session_state.tema = 'claro' if st.session_state.tema == 'oscuro' else 'oscuro'
-        st.rerun()
-
-# ── INDICADOR TRANSPOSICIÓN ───────────────────────────────────────────
-delta = semitonos if semitonos <= 6 else semitonos - 12
-if delta != 0:
-    sfx   = 'm' if es_menor else ''
-    signo = '▲' if delta > 0 else '▼'
-    clase = 'tr-up' if delta > 0 else 'tr-down'
-    st.markdown(
-        f'<div class="{clase}">{signo} {abs(delta)} '
-        f'semitono{"s" if abs(delta)>1 else ""}'
-        f'&nbsp;·&nbsp;{t_base}{sfx} → {t_dest}{sfx}</div>',
-        unsafe_allow_html=True
+    html = (
+        f'<div class="canto-wrap">'
+        f'<div class="canto-titulo">{cancion["titulo"]}</div>'
+        f'<div style="font-family:\'JetBrains Mono\',\'Consolas\',monospace;'
+        f'font-size:{tamano}px;line-height:1.65;{col_style}">'
     )
-
-# ── EXPORT PDF ────────────────────────────────────────────────────────
-sfx_pdf   = 'm' if es_menor else ''
-pdf_bytes = generar_pdf(cancion, semitonos, t_dest, es_menor)
-nombre_f  = re.sub(r'[^\w\s-]', '', cancion['titulo'])[:38].strip().replace(' ', '_')
-st.download_button(
-    label     = f'⬇ Descargar PDF — {t_dest}{sfx_pdf}',
-    data      = pdf_bytes,
-    file_name = f'{nombre_f}_{t_dest}{sfx_pdf}.pdf',
-    mime      = 'application/pdf',
-    key       = 'dl_pdf'
-)
-
-st.divider()
-
-# ── RENDER CANTO ─────────────────────────────────────────────────────
-num_cols  = 2 if cols_v == '2 columnas' else 1
-col_style = f'column-count:{num_cols};column-gap:52px;' if num_cols > 1 else ''
-
-html = (
-    f'<div class="canto-wrap">'
-    f'<div class="canto-titulo">{cancion["titulo"]}</div>'
-    f'<div style="font-family:\'JetBrains Mono\',\'Consolas\',monospace;'
-    f'font-size:{tamano}px;line-height:1.65;{col_style}">'
-)
-
-versos = cancion['versos']
-i = 0
-while i < len(versos):
-    v       = versos[i]
-    tu      = v['texto'].strip().upper()
-    es_secc = any(tu.startswith(e.upper())
-                  for e in ['INTRO','CORO','PUENTE','ESTROFA','FINAL'])
-    if es_secc and i > 0:
-        html += '<div class="par-sep"></div>'
-    if v['tipo'] == 'acordes' and (i+1 < len(versos)) and versos[i+1]['tipo'] == 'letra':
-        html += '<div class="par">'
-        html += render_acordes(v['texto'], semitonos)
-        html += render_letra(versos[i+1]['texto'])
-        html += '</div>'
-        i += 2
-    else:
-        html += '<div class="par">'
-        if v['tipo'] == 'acordes':
+    versos = cancion['versos']
+    i = 0
+    while i < len(versos):
+        v       = versos[i]
+        tu      = v['texto'].strip().upper()
+        es_secc = any(tu.startswith(e.upper())
+                      for e in ['INTRO','CORO','PUENTE','ESTROFA','FINAL'])
+        if es_secc and i > 0:
+            html += '<div class="par-sep"></div>'
+        if v['tipo'] == 'acordes' and (i+1 < len(versos)) and versos[i+1]['tipo'] == 'letra':
+            html += '<div class="par">'
             html += render_acordes(v['texto'], semitonos)
+            html += render_letra(versos[i+1]['texto'])
+            html += '</div>'
+            i += 2
         else:
-            html += render_letra(v['texto'])
-        html += '</div>'
-        i += 1
+            html += '<div class="par">'
+            if v['tipo'] == 'acordes':
+                html += render_acordes(v['texto'], semitonos)
+            else:
+                html += render_letra(v['texto'])
+            html += '</div>'
+            i += 1
+    html += '</div></div>'
+    st.markdown(html, unsafe_allow_html=True)
 
-html += '</div></div>'
-st.markdown(html, unsafe_allow_html=True)
+# ═══════════════════════════════════════════════════════════════════
+#  TAB 2 — SETLIST
+# ═══════════════════════════════════════════════════════════════════
+with tab2:
+    if not st.session_state.setlist:
+        st.markdown(
+            '<div style="text-align:center;padding:60px 20px;color:var(--muted,#54525f)">'
+            '<div style="font-size:3rem">📋</div>'
+            '<div style="font-family:\'EB Garamond\',serif;font-size:1.3rem;margin:12px 0">Setlist vacío</div>'
+            '<div style="font-family:monospace;font-size:.8rem">Ve al Cancionero, selecciona un canto<br>'
+            'y presiona <b>+ Setlist</b> para agregarlo.</div>'
+            '</div>', unsafe_allow_html=True
+        )
+    else:
+        # Botón presentar
+        col_pres, col_clear = st.columns([3, 1])
+        with col_pres:
+            if st.button('🎬 Iniciar Presentación', use_container_width=True, key='btn_presentar',
+                         type='primary'):
+                st.session_state.modo = 'presentacion'
+                st.session_state.pres_idx = 0
+                st.rerun()
+        with col_clear:
+            if st.button('🗑 Vaciar', use_container_width=True, key='btn_clear'):
+                st.session_state.setlist = []
+                st.rerun()
 
-# ── PANEL FLOTANTE FAVORITOS ──────────────────────────────────────────
-# Se renderiza al final para que el botón flotante quede sobre el contenido
-ls_bridge(
-    favoritos_actuales = st.session_state.favoritos,
-    titulos_todos      = titulos,
-    height             = 1       # altura mínima, el panel es fixed/overlay
-)
+        st.markdown(f'**{len(st.session_state.setlist)} cantos** en el setlist')
+        st.divider()
 
-# ── FOOTER ────────────────────────────────────────────────────────────
-sfx_f = 'm' if es_menor else ''
+        # Lista con controles de reorden y eliminación
+        to_delete = None
+        to_move   = None  # (idx, direction)
+
+        for i, item in enumerate(st.session_state.setlist):
+            c_num, c_titulo, c_tono, c_up, c_down, c_del = st.columns([.4, 4, .8, .4, .4, .4])
+
+            with c_num:
+                st.markdown(
+                    f'<div style="text-align:right;padding-top:8px;'
+                    f'font-family:monospace;font-size:.75rem;color:var(--muted,#54525f)">'
+                    f'{i+1}</div>', unsafe_allow_html=True
+                )
+            with c_titulo:
+                titulo_corto = item['titulo'][:55] + ('…' if len(item['titulo']) > 55 else '')
+                st.markdown(
+                    f'<div style="padding-top:8px;font-family:monospace;'
+                    f'font-size:.8rem;color:var(--text,#e8e4d8)">{titulo_corto}</div>',
+                    unsafe_allow_html=True
+                )
+            with c_tono:
+                sfx = 'm' if item['es_menor'] else ''
+                st.markdown(
+                    f'<div style="padding-top:6px">'
+                    f'<span class="tono-pill" style="font-size:.7rem">'
+                    f'{item["t_dest"]}{sfx}</span></div>',
+                    unsafe_allow_html=True
+                )
+            with c_up:
+                if i > 0:
+                    if st.button('↑', key=f'up_{i}', use_container_width=True):
+                        to_move = (i, -1)
+            with c_down:
+                if i < len(st.session_state.setlist) - 1:
+                    if st.button('↓', key=f'dn_{i}', use_container_width=True):
+                        to_move = (i, 1)
+            with c_del:
+                if st.button('✕', key=f'del_{i}', use_container_width=True):
+                    to_delete = i
+
+        # Aplicar cambios fuera del loop
+        if to_delete is not None:
+            st.session_state.setlist.pop(to_delete)
+            st.rerun()
+        if to_move is not None:
+            idx_m, direction = to_move
+            sl = st.session_state.setlist
+            sl[idx_m], sl[idx_m + direction] = sl[idx_m + direction], sl[idx_m]
+            st.rerun()
+
+        st.divider()
+        # Preview del primer canto
+        if st.session_state.setlist:
+            first = st.session_state.setlist[0]
+            c_prev = next((x for x in canciones if x['titulo'] == first['titulo']), None)
+            if c_prev:
+                st.markdown(
+                    f'<div style="font-family:monospace;font-size:.72rem;'
+                    f'color:var(--muted,#54525f);margin-bottom:6px">'
+                    f'PRIMER CANTO:</div>', unsafe_allow_html=True
+                )
+                st.markdown(
+                    f'<div style="font-family:\'EB Garamond\',serif;font-size:1.1rem;'
+                    f'color:var(--accent,#c49b30)">{c_prev["titulo"]}</div>',
+                    unsafe_allow_html=True
+                )
+
+# Footer
 st.markdown(
-    f'<div style="margin-top:42px;text-align:center;'
-    f'font-family:\'JetBrains Mono\',monospace;font-size:.66rem;'
-    f'color:var(--muted,#54525f);border-top:1px solid var(--border,#2a2a35);'
-    f'padding-top:10px;margin-bottom:80px;">'
-    f'Estribillos con Acordes 2020 · {len(canciones)} cantos · '
-    f'Tono: {t_dest}{sfx_f}</div>',
+    f'<div style="margin-top:32px;text-align:center;font-family:monospace;'
+    f'font-size:.66rem;color:var(--muted,#54525f);'
+    f'border-top:1px solid var(--border,#2a2a35);padding-top:10px;margin-bottom:20px;">'
+    f'Estribillos con Acordes 2020 · {len(canciones)} cantos</div>',
     unsafe_allow_html=True
 )
