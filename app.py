@@ -2,6 +2,7 @@
 Estribillos con Acordes 2020 — Cancionero Digital
 """
 import streamlit as st
+import streamlit.components.v1 as components
 import pdfplumber
 import json
 import re
@@ -12,14 +13,15 @@ from fpdf.enums import XPos, YPos
 # ─────────────────────────────────────────────────────────────────────
 #  CONSTANTES
 # ─────────────────────────────────────────────────────────────────────
-ESCALA     = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']
-BEMOLES    = {'Db':'C#','Eb':'D#','Gb':'F#','Ab':'G#','Bb':'A#'}
-ETIQUETAS  = ['intro','coro','puente','final','estrofa','sigue','notas',
-              'del','al','fin','vuelta']
-NOMBRE_PDF = 'ESTRIBILLOS CON ACORDES 2020.pdf'
-CACHE_JSON = 'cancionero.json'
+ESCALA      = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']
+BEMOLES     = {'Db':'C#','Eb':'D#','Gb':'F#','Ab':'G#','Bb':'A#'}
+ETIQUETAS   = ['intro','coro','puente','final','estrofa','sigue','notas',
+               'del','al','fin','vuelta']
+NOMBRE_PDF  = 'ESTRIBILLOS CON ACORDES 2020.pdf'
+CACHE_JSON  = 'cancionero.json'
 TONOS_ORDEN = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B',
                'Cm','C#m','Dm','D#m','Em','Fm','F#m','Gm','G#m','Am','A#m','Bm']
+LS_KEY      = 'estribillos_favoritos'   # clave en localStorage
 
 # ─────────────────────────────────────────────────────────────────────
 #  LÓGICA MUSICAL
@@ -130,10 +132,9 @@ def cargar_cancionero():
     return canciones
 
 # ─────────────────────────────────────────────────────────────────────
-#  PDF EXPORT — acordes posicionados sobre la letra
+#  PDF EXPORT
 # ─────────────────────────────────────────────────────────────────────
 def limpiar_chars(texto):
-    """Convierte caracteres especiales a latin-1. NO colapsa espacios."""
     reemplazos = {
         '\u2019':"'", '\u2018':"'", '\u201c':'"', '\u201d':'"',
         '\u2013':'-', '\u2014':'-', '\u2026':'...', '\u00b7':'.',
@@ -148,12 +149,10 @@ def limpiar_chars(texto):
     return texto.encode('latin-1', errors='replace').decode('latin-1')
 
 def limpiar_letra(texto):
-    """Para líneas de letra: limpia caracteres Y colapsa espacios múltiples."""
     texto = re.sub(r' {2,}', ' ', texto).strip()
     return limpiar_chars(texto)
 
 def extraer_acordes_con_pos(linea):
-    """Extrae (columna, acorde) preservando posición original."""
     tokens, current, start = [], '', 0
     for i, ch in enumerate(linea):
         if ch == ' ':
@@ -170,18 +169,13 @@ def extraer_acordes_con_pos(linea):
     return tokens
 
 def courier_char_width_mm(fs):
-    """Ancho de un carácter Courier en mm para un font size dado."""
     return fs * 0.6 * 0.3528
 
 def generar_pdf(cancion, semitonos, t_destino, es_menor):
-    """
-    PDF con acordes posicionados exactamente sobre la sílaba correcta.
-    Cada acorde se coloca con set_xy() basándose en su columna original.
-    """
-    FS   = 8.5
-    LH_A = 4.0
-    LH_L = 5.5
-    CW   = courier_char_width_mm(FS)
+    FS      = 8.5
+    LH_A    = 4.0
+    LH_L    = 5.5
+    CW      = courier_char_width_mm(FS)
     LMARGIN = 12
 
     pdf = FPDF()
@@ -189,7 +183,6 @@ def generar_pdf(cancion, semitonos, t_destino, es_menor):
     pdf.set_auto_page_break(auto=True, margin=12)
     pdf.add_page()
 
-    # ── Cabecera ──────────────────────────────────────
     pdf.set_font('Helvetica', 'B', 13)
     pdf.set_text_color(160, 110, 20)
     pdf.multi_cell(0, 8, limpiar_letra(cancion['titulo']), align='L',
@@ -207,7 +200,6 @@ def generar_pdf(cancion, semitonos, t_destino, es_menor):
     pdf.line(LMARGIN, pdf.get_y(), 198, pdf.get_y())
     pdf.ln(5)
 
-    # ── Versos ────────────────────────────────────────
     versos = cancion['versos']
     i = 0
     while i < len(versos):
@@ -219,22 +211,17 @@ def generar_pdf(cancion, semitonos, t_destino, es_menor):
             pdf.ln(4)
 
         if v['tipo'] == 'acordes' and (i+1 < len(versos)) and versos[i+1]['tipo'] == 'letra':
-            # ── Acorde posicionado + letra ─────────────
             acorde_t = limpiar_chars(transponer_linea(v['texto'], semitonos))
             letra_t  = limpiar_letra(versos[i+1]['texto'])
-
             y_acorde = pdf.get_y()
 
-            # Colocar cada acorde en su posición X exacta
             pdf.set_font('Courier', 'B', FS)
             pdf.set_text_color(160, 110, 20)
             for col, acorde in extraer_acordes_con_pos(acorde_t):
-                x = LMARGIN + col * CW
-                x = min(x, pdf.w - pdf.r_margin - 12)
+                x = min(LMARGIN + col * CW, pdf.w - pdf.r_margin - 12)
                 pdf.set_xy(x, y_acorde)
                 pdf.cell(30, LH_A, acorde)
 
-            # Letra en la línea siguiente
             pdf.set_xy(LMARGIN, y_acorde + LH_A)
             pdf.set_font('Courier', '', FS)
             pdf.set_text_color(30, 30, 30)
@@ -243,22 +230,18 @@ def generar_pdf(cancion, semitonos, t_destino, es_menor):
             i += 2
 
         elif v['tipo'] == 'acordes':
-            # Acorde suelto sin letra
             acorde_t = limpiar_chars(transponer_linea(v['texto'], semitonos))
             y_acorde = pdf.get_y()
             pdf.set_font('Courier', 'B', FS)
             pdf.set_text_color(160, 110, 20)
             for col, acorde in extraer_acordes_con_pos(acorde_t):
-                x = LMARGIN + col * CW
-                x = min(x, pdf.w - pdf.r_margin - 12)
+                x = min(LMARGIN + col * CW, pdf.w - pdf.r_margin - 12)
                 pdf.set_xy(x, y_acorde)
                 pdf.cell(30, LH_A, acorde)
             pdf.set_xy(LMARGIN, y_acorde + LH_A)
-            pdf.ln(0)
             i += 1
 
         else:
-            # Letra sola
             letra_t = limpiar_letra(v['texto'])
             pdf.set_font('Courier', '', FS)
             pdf.set_text_color(30, 30, 30)
@@ -299,7 +282,299 @@ def render_letra(linea):
     return linea.replace(' ', '&nbsp;') + '<br>'
 
 # ─────────────────────────────────────────────────────────────────────
-#  CSS — TEMA OSCURO / CLARO
+#  COMPONENTE localStorage — bridge bidireccional
+# ─────────────────────────────────────────────────────────────────────
+def ls_bridge(favoritos_actuales: list, titulos_todos: list, height=0) -> str | None:
+    """
+    Inyecta un iframe HTML que:
+      - Lee favoritos de localStorage al cargar y los envía a Streamlit
+      - Escucha cambios desde Streamlit y los persiste en localStorage
+    Retorna el título seleccionado desde el panel flotante, o None.
+    """
+    favs_json  = json.dumps(favoritos_actuales)
+    todos_json = json.dumps(titulos_todos)
+    ls_key     = LS_KEY
+
+    html = f"""
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * {{ margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',sans-serif; }}
+  body {{ background:transparent; }}
+
+  /* ── Botón flotante ── */
+  #fab {{
+    position: fixed;
+    bottom: 28px; right: 28px;
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    background: #c49b30;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0,0,0,.45);
+    z-index: 9999;
+    transition: transform .15s, background .15s;
+    display: flex; align-items: center; justify-content: center;
+  }}
+  #fab:hover {{ transform: scale(1.1); background: #d4a843; }}
+
+  /* ── Panel flotante ── */
+  #panel {{
+    position: fixed;
+    bottom: 90px; right: 28px;
+    width: 310px;
+    max-height: 420px;
+    background: #141418;
+    border: 1px solid #2a2a35;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.6);
+    z-index: 9998;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    animation: slideUp .18s ease;
+  }}
+  @keyframes slideUp {{
+    from {{ opacity:0; transform:translateY(12px); }}
+    to   {{ opacity:1; transform:translateY(0); }}
+  }}
+  #panel.open {{ display: flex; }}
+
+  /* Tema claro */
+  body.claro #panel  {{ background:#fff; border-color:#d4cdb8; }}
+  body.claro #fab    {{ background:#8a6010; }}
+  body.claro #fab:hover {{ background:#a07018; }}
+  body.claro .item   {{ color:#1a1810 !important; }}
+  body.claro .item:hover {{ background:#f0ece2 !important; }}
+  body.claro #panel-header {{ background:#f5f2eb; border-color:#d4cdb8; color:#1a1810; }}
+  body.claro #empty  {{ color:#7a7060; }}
+
+  #panel-header {{
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid #2a2a35;
+    background: #0f0f13;
+    flex-shrink: 0;
+  }}
+  #panel-header span {{
+    font-size: .82rem; font-weight: 600;
+    color: #c49b30; letter-spacing: .06em; text-transform: uppercase;
+  }}
+  #badge {{
+    background: #c49b30; color: #0d0d0f;
+    border-radius: 10px; font-size: .68rem;
+    padding: 1px 7px; font-weight: 700;
+  }}
+  #close-btn {{
+    background: none; border: none; color: #54525f;
+    font-size: 16px; cursor: pointer; padding: 2px 6px;
+    border-radius: 4px;
+  }}
+  #close-btn:hover {{ color: #e8e4d8; background: #2a2a35; }}
+
+  #list {{
+    overflow-y: auto; flex: 1;
+    padding: 6px 0;
+    scrollbar-width: thin;
+    scrollbar-color: #2a2a35 transparent;
+  }}
+  .item {{
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 14px;
+    color: #e8e4d8;
+    font-size: .78rem;
+    cursor: pointer;
+    transition: background .1s;
+    gap: 8px;
+  }}
+  .item:hover {{ background: #1c1c22; }}
+  .item-titulo {{
+    flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }}
+  .item-tono {{
+    font-size: .65rem; color: #f0c060;
+    background: #1e1808; border: 1px solid #5e4718;
+    border-radius: 10px; padding: 1px 6px; flex-shrink: 0;
+  }}
+  .del-btn {{
+    background: none; border: none; color: #54525f;
+    cursor: pointer; font-size: 14px; padding: 0 2px;
+    flex-shrink: 0;
+  }}
+  .del-btn:hover {{ color: #e05a6a; }}
+
+  #empty {{
+    padding: 32px 16px; text-align: center;
+    color: #54525f; font-size: .8rem; line-height: 1.6;
+  }}
+  #empty span {{ font-size: 1.8rem; display:block; margin-bottom:8px; }}
+</style>
+</head>
+<body>
+
+<!-- Botón flotante -->
+<button id="fab" title="Favoritos">⭐</button>
+
+<!-- Panel flotante -->
+<div id="panel">
+  <div id="panel-header">
+    <span>⭐ Favoritos <span id="badge">0</span></span>
+    <button id="close-btn" title="Cerrar">✕</button>
+  </div>
+  <div id="list"></div>
+</div>
+
+<script>
+const LS_KEY   = "{ls_key}";
+const TODOS    = {todos_json};
+// Map titulo -> tono for display
+const TONO_MAP = {{}};
+
+// We'll receive tono info via postMessage from parent if needed
+// For now build from TODOS list (titles only, tono shown if passed)
+
+// ── State ──────────────────────────────────────────────────────────
+let favs = [];
+let panelOpen = false;
+let tema = 'oscuro';
+
+// ── Load from localStorage ─────────────────────────────────────────
+function loadFavs() {{
+  try {{
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) favs = JSON.parse(raw);
+  }} catch(e) {{ favs = []; }}
+  // Seed from Python-passed list if localStorage is empty
+  if (favs.length === 0) {{
+    favs = {favs_json};
+    saveFavs();
+  }}
+  renderList();
+  notifyParent();
+}}
+
+function saveFavs() {{
+  localStorage.setItem(LS_KEY, JSON.stringify(favs));
+}}
+
+// ── Render ─────────────────────────────────────────────────────────
+function renderList() {{
+  const list = document.getElementById('list');
+  const badge = document.getElementById('badge');
+  badge.textContent = favs.length;
+  document.getElementById('fab').textContent = favs.length > 0 ? '⭐' : '☆';
+
+  if (favs.length === 0) {{
+    list.innerHTML = '<div id="empty"><span>☆</span>Aún no tienes favoritos.<br>Presiona ☆ Guardar en cualquier canto.</div>';
+    return;
+  }}
+
+  list.innerHTML = '';
+  favs.forEach(titulo => {{
+    const div = document.createElement('div');
+    div.className = 'item';
+
+    const t = document.createElement('div');
+    t.className = 'item-titulo';
+    t.textContent = titulo;
+    t.title = titulo;
+
+    const del = document.createElement('button');
+    del.className = 'del-btn';
+    del.textContent = '✕';
+    del.title = 'Quitar de favoritos';
+    del.onclick = (e) => {{
+      e.stopPropagation();
+      favs = favs.filter(f => f !== titulo);
+      saveFavs();
+      renderList();
+      notifyParent();
+    }};
+
+    div.appendChild(t);
+    div.appendChild(del);
+
+    // Click en el título → seleccionar canto
+    t.onclick = () => {{
+      window.parent.postMessage({{
+        type: 'fav_select',
+        titulo: titulo
+      }}, '*');
+      togglePanel(false);
+    }};
+
+    list.appendChild(div);
+  }});
+}}
+
+// ── Toggle panel ───────────────────────────────────────────────────
+function togglePanel(force) {{
+  panelOpen = force !== undefined ? force : !panelOpen;
+  const panel = document.getElementById('panel');
+  if (panelOpen) panel.classList.add('open');
+  else panel.classList.remove('open');
+}}
+
+document.getElementById('fab').onclick = () => togglePanel();
+document.getElementById('close-btn').onclick = () => togglePanel(false);
+
+// Cerrar al hacer clic fuera
+document.addEventListener('click', (e) => {{
+  const panel = document.getElementById('panel');
+  const fab   = document.getElementById('fab');
+  if (panelOpen && !panel.contains(e.target) && !fab.contains(e.target)) {{
+    togglePanel(false);
+  }}
+}});
+
+// ── Comunicación con Streamlit (postMessage) ───────────────────────
+function notifyParent() {{
+  window.parent.postMessage({{
+    type: 'favs_update',
+    favs: favs
+  }}, '*');
+}}
+
+// Recibir mensajes desde Streamlit
+window.addEventListener('message', (e) => {{
+  if (!e.data || !e.data.type) return;
+
+  if (e.data.type === 'add_fav') {{
+    if (!favs.includes(e.data.titulo)) {{
+      favs.push(e.data.titulo);
+      saveFavs(); renderList(); notifyParent();
+    }}
+  }}
+  if (e.data.type === 'remove_fav') {{
+    favs = favs.filter(f => f !== e.data.titulo);
+    saveFavs(); renderList(); notifyParent();
+  }}
+  if (e.data.type === 'set_tema') {{
+    tema = e.data.tema;
+    if (tema === 'claro') document.body.classList.add('claro');
+    else document.body.classList.remove('claro');
+  }}
+  if (e.data.type === 'sync_favs') {{
+    // Streamlit pide sincronización al iniciar
+    notifyParent();
+  }}
+}});
+
+// ── Init ───────────────────────────────────────────────────────────
+loadFavs();
+</script>
+</body>
+</html>
+"""
+    result = components.html(html, height=height, scrolling=False)
+    return result
+
+
+# ─────────────────────────────────────────────────────────────────────
+#  CSS
 # ─────────────────────────────────────────────────────────────────────
 CSS_OSCURO = """
     --bg        : #0d0d0f;
@@ -334,7 +609,7 @@ CSS_CLARO = """
     --red       : #c04020;
 """
 
-def get_css(tema='oscuro', modo_pres=False, sidebar_visible=True):
+def get_css(tema='oscuro', modo_pres=False):
     vars_tema = CSS_CLARO if tema == 'claro' else CSS_OSCURO
     pres_hide = """
     .sb-header, .stat-row, .stDownloadButton,
@@ -342,10 +617,6 @@ def get_css(tema='oscuro', modo_pres=False, sidebar_visible=True):
     .canto-wrap { border:none !important; padding:0 !important;
                   background:transparent !important; }
     """ if modo_pres else ""
-    sidebar_hide = """
-    [data-testid="stSidebar"] { display:none !important; }
-    """ if not sidebar_visible else ""
-
     return f"""
 <style>
 :root {{{vars_tema}
@@ -356,11 +627,7 @@ def get_css(tema='oscuro', modo_pres=False, sidebar_visible=True):
 html, body {{ background: var(--bg) !important; color: var(--text) !important; }}
 #MainMenu, footer, header {{ visibility: hidden; }}
 [data-testid="stToolbar"] {{ display: none; }}
-[data-testid="stSidebar"] {{
-    background: var(--surf3) !important;
-    border-right: 1px solid var(--border) !important;
-}}
-[data-testid="stSidebar"] * {{ color: var(--text) !important; }}
+[data-testid="stSidebar"] {{ display: none !important; }}
 .stTextInput input, .stNumberInput input {{
     background: var(--surf2) !important; border: 1px solid var(--border) !important;
     border-radius: 6px !important; color: var(--text) !important;
@@ -445,7 +712,6 @@ hr {{ border-color: var(--border) !important; margin: 6px 0 !important; }}
 }}
 .par-sep {{ height: 14px; break-inside: avoid-column; }}
 {pres_hide}
-{sidebar_hide}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -459,17 +725,14 @@ st.set_page_config(
     page_title='Estribillos con Acordes',
     page_icon='🎵',
     layout='wide',
-    initial_sidebar_state='expanded'
+    initial_sidebar_state='collapsed'
 )
 
-# Session state — clave: 'seleccion' NO cambia al cambiar otros controles
-for k, v in [('favoritos', set()), ('seleccion', None),
-             ('presentacion', False), ('tema', 'oscuro'),
-             ('sidebar_visible', True)]:
+for k, v in [('favoritos', []), ('seleccion', None),
+             ('presentacion', False), ('tema', 'oscuro')]:
     if k not in st.session_state:
         st.session_state[k] = v
 
-# Carga
 with st.spinner('Cargando cancionero…'):
     canciones = cargar_cancionero()
 
@@ -477,50 +740,11 @@ if not canciones:
     st.error('⚠️ No se encontró el PDF ni el cache.')
     st.stop()
 
-tonos_disponibles = sorted(
-    set(c['tono'].strip() for c in canciones if c['tono'].strip()),
-    key=lambda t: TONOS_ORDEN.index(t) if t in TONOS_ORDEN else 99
-)
-
-# ── SIDEBAR ───────────────────────────────────────────────────────────
-with st.sidebar:
-    st.markdown(
-        '<div style="font-family:\'EB Garamond\',serif;font-size:1.25rem;'
-        'color:var(--accent,#c49b30);border-bottom:1px solid #2a2a35;'
-        'padding-bottom:9px;margin-bottom:12px;">📖 Índice</div>',
-        unsafe_allow_html=True
-    )
-    busq_sb   = st.text_input('🔍', placeholder='buscar canto…',
-                               label_visibility='collapsed', key='sb_busq')
-    solo_favs = st.checkbox('⭐ Solo favoritos', key='sb_favs')
-    tono_sb   = st.selectbox('Tono', ['Todos'] + tonos_disponibles, key='sb_tono')
-
-    lista_sb = canciones
-    if busq_sb:
-        lista_sb = [c for c in lista_sb if busq_sb.lower() in c['titulo'].lower()]
-    if solo_favs:
-        lista_sb = [c for c in lista_sb if c['titulo'] in st.session_state.favoritos]
-    if tono_sb != 'Todos':
-        lista_sb = [c for c in lista_sb if c['tono'].strip() == tono_sb]
-
-    st.caption(f'{len(lista_sb)} de {len(canciones)} cantos')
-
-    for c in lista_sb:
-        es_fav = c['titulo'] in st.session_state.favoritos
-        label  = ('⭐ ' if es_fav else '') + c['titulo'][:46] + ('…' if len(c['titulo']) > 46 else '')
-        if st.button(label, key=f'sb_{c["titulo"]}', use_container_width=True):
-            st.session_state.seleccion = c['titulo']
-            st.rerun()
-
-    st.caption(f'{len(st.session_state.favoritos)} favorito(s)')
+titulos = [c['titulo'] for c in canciones]
 
 # ── CSS ───────────────────────────────────────────────────────────────
-st.markdown(
-    get_css(st.session_state.tema,
-            st.session_state.presentacion,
-            st.session_state.sidebar_visible),
-    unsafe_allow_html=True
-)
+st.markdown(get_css(st.session_state.tema, st.session_state.presentacion),
+            unsafe_allow_html=True)
 
 # ── HEADER ───────────────────────────────────────────────────────────
 st.markdown(
@@ -540,10 +764,6 @@ st.markdown(
 )
 
 # ── SELECTOR + FAVORITO ───────────────────────────────────────────────
-titulos = [c['titulo'] for c in canciones]
-
-# FIX COLUMNAS: guardamos seleccion en session_state y usamos on_change
-# para que cambiar otros widgets NO resetee el canto seleccionado
 def on_select_change():
     st.session_state.seleccion = st.session_state.sel_widget
 
@@ -565,16 +785,17 @@ idx_base  = ESCALA.index(t_base) if t_base in ESCALA else 0
 es_fav    = seleccion in st.session_state.favoritos
 
 with col_fav:
-    if st.button('⭐ Quitar' if es_fav else '☆ Guardar',
-                 use_container_width=True, key='btn_fav'):
+    fav_label = '⭐ Quitar' if es_fav else '☆ Guardar'
+    if st.button(fav_label, use_container_width=True, key='btn_fav'):
         if es_fav:
-            st.session_state.favoritos.discard(seleccion)
+            st.session_state.favoritos = [f for f in st.session_state.favoritos if f != seleccion]
         else:
-            st.session_state.favoritos.add(seleccion)
+            if seleccion not in st.session_state.favoritos:
+                st.session_state.favoritos.append(seleccion)
         st.rerun()
 
 # ── CONTROLES ─────────────────────────────────────────────────────────
-c1, c2, c3, c4, c5, c6, c7, c8 = st.columns([1.2, 1.4, 1, 1, 1, 1, 1, 1])
+c1, c2, c3, c4, c5, c6, c7 = st.columns([1.2, 1.4, 1, 1, 1, 1, 1])
 
 with c1:
     mc = 'tono-m' if es_menor else ''
@@ -592,32 +813,29 @@ with c2:
 
 with c3:
     if modo_t == 'Tono destino':
-        t_dest    = st.selectbox('T', ESCALA, index=idx_base, label_visibility='collapsed', key='sel_tono')
+        t_dest    = st.selectbox('T', ESCALA, index=idx_base,
+                                 label_visibility='collapsed', key='sel_tono')
         semitonos = (ESCALA.index(t_dest) - idx_base) % 12
     else:
-        semitonos = int(st.number_input('S', -12, 12, 0, label_visibility='collapsed', key='num_semi'))
+        semitonos = int(st.number_input('S', -12, 12, 0,
+                                        label_visibility='collapsed', key='num_semi'))
         t_dest    = ESCALA[(idx_base + semitonos) % 12]
 
 with c4:
-    tamano = st.slider('F', 13, 42, 18, label_visibility='collapsed', key='slider_font')
+    tamano = st.slider('F', 13, 42, 18,
+                       label_visibility='collapsed', key='slider_font')
 
 with c5:
     cols_v = st.radio('Vista', ['1 columna', '2 columnas'],
                       horizontal=True, label_visibility='collapsed', key='radio_cols')
 
 with c6:
-    sb_label = '◀ Ocultar' if st.session_state.sidebar_visible else '▶ Índice'
-    if st.button(sb_label, use_container_width=True, key='btn_sb'):
-        st.session_state.sidebar_visible = not st.session_state.sidebar_visible
-        st.rerun()
-
-with c7:
     if st.button('🎬 Salir' if st.session_state.presentacion else '🎬 Presentar',
                  use_container_width=True, key='btn_pres'):
         st.session_state.presentacion = not st.session_state.presentacion
         st.rerun()
 
-with c8:
+with c7:
     tema_label = '☀️ Claro' if st.session_state.tema == 'oscuro' else '🌙 Oscuro'
     if st.button(tema_label, use_container_width=True, key='btn_tema'):
         st.session_state.tema = 'claro' if st.session_state.tema == 'oscuro' else 'oscuro'
@@ -638,7 +856,6 @@ if delta != 0:
 
 # ── EXPORT PDF ────────────────────────────────────────────────────────
 sfx_pdf   = 'm' if es_menor else ''
-# semitonos y t_dest ya están calculados arriba con el tono correcto
 pdf_bytes = generar_pdf(cancion, semitonos, t_dest, es_menor)
 nombre_f  = re.sub(r'[^\w\s-]', '', cancion['titulo'])[:38].strip().replace(' ', '_')
 st.download_button(
@@ -689,13 +906,21 @@ while i < len(versos):
 html += '</div></div>'
 st.markdown(html, unsafe_allow_html=True)
 
+# ── PANEL FLOTANTE FAVORITOS ──────────────────────────────────────────
+# Se renderiza al final para que el botón flotante quede sobre el contenido
+ls_bridge(
+    favoritos_actuales = st.session_state.favoritos,
+    titulos_todos      = titulos,
+    height             = 1       # altura mínima, el panel es fixed/overlay
+)
+
 # ── FOOTER ────────────────────────────────────────────────────────────
 sfx_f = 'm' if es_menor else ''
 st.markdown(
     f'<div style="margin-top:42px;text-align:center;'
     f'font-family:\'JetBrains Mono\',monospace;font-size:.66rem;'
     f'color:var(--muted,#54525f);border-top:1px solid var(--border,#2a2a35);'
-    f'padding-top:10px;">'
+    f'padding-top:10px;margin-bottom:80px;">'
     f'Estribillos con Acordes 2020 · {len(canciones)} cantos · '
     f'Tono: {t_dest}{sfx_f}</div>',
     unsafe_allow_html=True
