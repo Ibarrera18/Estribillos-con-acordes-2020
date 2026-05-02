@@ -703,198 +703,394 @@ hr{{border-color:var(--border)!important;margin:6px 0!important;}}
 #  MODO PRESENTACIÓN — HTML autónomo fullscreen
 # ─────────────────────────────────────────────────────────────────────
 def render_presentacion(setlist_data, idx_actual, tema):
-    """
-    setlist_data: list of {titulo, tono_orig, tono_dest, semitonos, es_menor, versos}
-    Renderiza fullscreen con botones prev/next flotantes.
-    """
     import streamlit.components.v1 as components
 
     items_json = json.dumps(setlist_data, ensure_ascii=False)
-    bg     = '#0d0d0f' if tema == 'oscuro' else '#f5f2eb'
-    surf   = '#141418' if tema == 'oscuro' else '#ffffff'
-    text   = '#e8e4d8' if tema == 'oscuro' else '#1a1810'
-    accent = '#c49b30' if tema == 'oscuro' else '#8a6010'
-    cbg    = '#1e1808' if tema == 'oscuro' else '#fdf3d0'
-    cfg    = '#f0c060' if tema == 'oscuro' else '#7a4800'
-    muted  = '#54525f' if tema == 'oscuro' else '#7a7060'
-    border = '#2a2a35' if tema == 'oscuro' else '#d4cdb8'
+    is_dark = tema == 'oscuro'
+    bg     = '#0a0a0c' if is_dark else '#f8f5ee'
+    surf   = '#13131a' if is_dark else '#ffffff'
+    text   = '#edeae0' if is_dark else '#1a1810'
+    accent = '#d4a843' if is_dark else '#8a6010'
+    cbg    = '#1e1808' if is_dark else '#fdf3d0'
+    cfg    = '#f0c060' if is_dark else '#7a4800'
+    muted  = '#4a4858' if is_dark else '#8a8070'
+    border = '#252530' if is_dark else '#d4cdb8'
+    nav_bg = '#1a1a24ee' if is_dark else '#ffffffee'
+    lbl_fg = '#7cb4f0'
 
-    html = f"""<!DOCTYPE html><html><head><meta charset="utf-8">
-<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    html = f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
-*{{margin:0;padding:0;box-sizing:border-box;}}
-body{{background:{bg};color:{text};font-family:'JetBrains Mono',monospace;
-     overflow-x:hidden;min-height:100vh;}}
-#header{{
-    position:sticky;top:0;z-index:100;
-    background:{surf};border-bottom:1px solid {border};
-    padding:10px 20px;display:flex;align-items:center;
-    justify-content:space-between;gap:16px;
+* {{ margin:0; padding:0; box-sizing:border-box; }}
+
+html, body {{
+    background: {bg};
+    color: {text};
+    font-family: 'JetBrains Mono', 'Consolas', monospace;
+    height: 100%;
+    overflow: hidden;
 }}
-#titulo-header{{
-    font-family:'EB Garamond',serif;font-size:1.2rem;
-    color:{accent};flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+
+/* ── Fullscreen container ── */
+#app {{
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
 }}
-#tono-header{{
-    font-size:.72rem;color:{cfg};background:{cbg};
-    border:1px solid #5e4718;border-radius:12px;padding:2px 10px;
-    font-family:'JetBrains Mono',monospace;white-space:nowrap;
+
+/* ── Top bar ── */
+#topbar {{
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 20px 10px 32px;
+    background: {surf};
+    border-bottom: 1px solid {border};
+    z-index: 10;
 }}
-#progress{{
-    font-family:'JetBrains Mono',monospace;font-size:.7rem;
-    color:{muted};white-space:nowrap;
+#titulo-h {{
+    font-family: 'EB Garamond', serif;
+    font-size: 1.15rem;
+    font-weight: 400;
+    color: {accent};
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: .02em;
 }}
-#canto-body{{
-    padding:28px 32px 120px;
-    font-size:18px;line-height:1.7;
+#tono-h {{
+    font-size: .7rem;
+    color: {cfg};
+    background: {cbg};
+    border: 1px solid #5e4718;
+    border-radius: 12px;
+    padding: 3px 12px;
+    white-space: nowrap;
+    letter-spacing: .06em;
 }}
-.acorde{{color:{cfg};font-weight:700;}}
-.etiqueta{{color:#7cb4f0;font-weight:700;}}
-/* Nav flotante */
-#nav{{
-    position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
-    display:flex;gap:12px;align-items:center;
-    background:{surf};border:1px solid {border};
-    border-radius:40px;padding:8px 20px;
-    box-shadow:0 4px 24px rgba(0,0,0,.5);z-index:200;
+#prog-h {{
+    font-size: .7rem;
+    color: {muted};
+    white-space: nowrap;
+    letter-spacing: .06em;
 }}
-.nav-btn{{
-    background:none;border:1px solid {border};
-    color:{text};border-radius:20px;padding:6px 18px;
-    font-family:'JetBrains Mono',monospace;font-size:.8rem;
-    cursor:pointer;transition:border-color .14s,background .14s;
+#fs-btn {{
+    background: none;
+    border: 1px solid {border};
+    color: {muted};
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: .72rem;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    transition: border-color .14s, color .14s;
+    white-space: nowrap;
 }}
-.nav-btn:hover{{border-color:{accent};background:{cbg};}}
-.nav-btn:disabled{{opacity:.3;cursor:default;}}
-#nav-titulo{{
-    font-size:.72rem;color:{muted};
-    max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-    text-align:center;
+#fs-btn:hover {{ border-color: {accent}; color: {accent}; }}
+
+/* ── Cuerpo scrollable ── */
+#scroll-area {{
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 32px 48px 140px 48px;
+    scrollbar-width: thin;
+    scrollbar-color: {border} transparent;
 }}
-#exit-btn{{
-    position:fixed;top:12px;right:16px;z-index:300;
-    background:none;border:1px solid {border};color:{muted};
-    border-radius:6px;padding:4px 12px;font-size:.72rem;
-    cursor:pointer;font-family:'JetBrains Mono',monospace;
+#scroll-area::-webkit-scrollbar {{ width: 6px; }}
+#scroll-area::-webkit-scrollbar-thumb {{ background: {border}; border-radius: 3px; }}
+
+/* ── Texto del canto ── */
+#canto-body {{
+    font-size: clamp(14px, 2.2vw, 22px);
+    line-height: 1.7;
+    max-width: 900px;
+    margin: 0 auto;
 }}
-#exit-btn:hover{{border-color:{accent};color:{accent};}}
-/* setlist lateral mini */
-#setlist-mini{{
-    position:fixed;left:0;top:50%;transform:translateY(-50%);
-    display:flex;flex-direction:column;gap:4px;
-    padding:8px 6px;z-index:150;
+.acorde {{ color: {cfg}; font-weight: 700; }}
+.etiqueta {{ color: {lbl_fg}; font-weight: 700; }}
+.par {{ margin-bottom: 2px; }}
+.par-sep {{ height: 18px; }}
+
+/* ── Dots laterales ── */
+#dots {{
+    position: fixed;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 20;
+    padding: 8px 0;
 }}
-.dot{{
-    width:8px;height:8px;border-radius:50%;
-    background:{border};cursor:pointer;transition:background .12s,transform .12s;
+.dot {{
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: {border};
+    cursor: pointer;
+    transition: background .15s, transform .15s;
 }}
-.dot.activo{{background:{accent};transform:scale(1.4);}}
-.dot:hover{{background:{accent};}}
+.dot.activo {{ background: {accent}; transform: scale(1.5); }}
+.dot:hover {{ background: {accent}; }}
+
+/* ── Barra de navegación flotante ── */
+#nav {{
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 12px 24px;
+    background: {nav_bg};
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid {border};
+    z-index: 50;
+}}
+.nav-zone {{
+    flex: 1;
+    display: flex;
+    align-items: center;
+}}
+.nav-zone.right {{ justify-content: flex-end; }}
+.nav-zone.center {{
+    flex: 2;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}}
+.nav-btn {{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: 1px solid {border};
+    color: {text};
+    border-radius: 24px;
+    padding: 8px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .8rem;
+    cursor: pointer;
+    transition: border-color .14s, background .14s, color .14s;
+    white-space: nowrap;
+}}
+.nav-btn:hover:not(:disabled) {{
+    border-color: {accent};
+    background: {cbg};
+    color: {cfg};
+}}
+.nav-btn:disabled {{ opacity: .25; cursor: default; }}
+.nav-btn .arrow {{ font-size: 1rem; }}
+#next-preview {{
+    font-size: .65rem;
+    color: {muted};
+    text-align: center;
+    max-width: 260px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}}
+#next-label {{
+    font-size: .58rem;
+    color: {muted};
+    letter-spacing: .1em;
+    text-transform: uppercase;
+}}
 </style>
 </head>
 <body>
-<div id="header">
-  <div id="titulo-header"></div>
-  <div id="tono-header"></div>
-  <div id="progress"></div>
-</div>
-<div id="canto-body"></div>
-<div id="setlist-mini"></div>
-<div id="nav">
-  <button class="nav-btn" id="prev-btn" onclick="navegar(-1)">&#8592; Anterior</button>
-  <div id="nav-titulo"></div>
-  <button class="nav-btn" id="next-btn" onclick="navegar(1)">Siguiente &#8594;</button>
-</div>
-<button id="exit-btn" onclick="salir()">✕ Salir</button>
+<div id="app">
+
+  <!-- Top bar -->
+  <div id="topbar">
+    <div id="titulo-h"></div>
+    <div id="tono-h"></div>
+    <div id="prog-h"></div>
+    <button id="fs-btn" onclick="toggleFS()">⛶ Pantalla completa</button>
+  </div>
+
+  <!-- Dots -->
+  <div id="dots"></div>
+
+  <!-- Cuerpo -->
+  <div id="scroll-area">
+    <div id="canto-body"></div>
+  </div>
+
+  <!-- Nav flotante -->
+  <div id="nav">
+    <div class="nav-zone left">
+      <button class="nav-btn" id="prev-btn" onclick="navegar(-1)">
+        <span class="arrow">←</span> Anterior
+      </button>
+    </div>
+    <div class="nav-zone center">
+      <div id="next-label">SIGUIENTE</div>
+      <div id="next-preview">—</div>
+    </div>
+    <div class="nav-zone right">
+      <button class="nav-btn" id="next-btn" onclick="navegar(1)">
+        Siguiente <span class="arrow">→</span>
+      </button>
+    </div>
+  </div>
+
+</div><!-- #app -->
 
 <script>
 const ITEMS = {items_json};
 let idx = {idx_actual};
-
 const ETIQUETAS = ['intro','coro','puente','final','estrofa','sigue'];
 
-function escapar(t){{return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}}
+function esc(t) {{
+    return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}}
 
-function renderCanto(){{
+function renderAcordes(linea) {{
+    return linea.split(/(\s+)/).map(p => {{
+        if (!p) return '';
+        if (/^\s+$/.test(p)) return p.replace(/ /g, '&nbsp;');
+        let pl = p.replace(/[\(\)\[\]\.,:]/g, '');
+        pl = pl.replace(/^[\/|[]+/, '').replace(/[\/|]+$/, '');
+        if (/^[A-G][#b]?(m|Maj|maj|M|dim|dis|aug|aum|sus|add)?[\d]*(\/[A-G][#b]?)?$/.test(pl))
+            return '<span class="acorde">' + esc(p) + '</span>';
+        if (ETIQUETAS.includes(pl.toLowerCase()))
+            return '<span class="etiqueta">' + esc(p) + '</span>';
+        return esc(p);
+    }}).join('');
+}}
+
+function renderCanto() {{
     const item = ITEMS[idx];
-    // Header
-    document.getElementById('titulo-header').textContent = item.titulo;
+
+    // Topbar
+    document.getElementById('titulo-h').textContent = item.titulo;
     const sfx = item.es_menor ? 'm' : '';
-    document.getElementById('tono-header').textContent =
-        item.tono_orig + '  →  ' + item.tono_dest + sfx;
-    document.getElementById('progress').textContent =
-        (idx+1) + ' / ' + ITEMS.length;
-    // Nav
+    document.getElementById('tono-h').textContent =
+        (item.tono_orig || '?') + ' → ' + item.tono_dest + sfx;
+    document.getElementById('prog-h').textContent = (idx + 1) + ' / ' + ITEMS.length;
+
+    // Botones nav
     document.getElementById('prev-btn').disabled = idx === 0;
     document.getElementById('next-btn').disabled = idx === ITEMS.length - 1;
-    const nextItem = idx < ITEMS.length-1 ? ITEMS[idx+1].titulo : '';
-    document.getElementById('nav-titulo').textContent = nextItem ? '→ ' + nextItem.substring(0,30) : '';
+
+    // Preview siguiente
+    if (idx < ITEMS.length - 1) {{
+        document.getElementById('next-label').style.opacity = '1';
+        document.getElementById('next-preview').textContent = ITEMS[idx + 1].titulo.replace(/^\d+[\.\-]?\s*/, '');
+    }} else {{
+        document.getElementById('next-label').style.opacity = '0';
+        document.getElementById('next-preview').textContent = 'Fin del setlist';
+    }}
+
     // Dots
-    const mini = document.getElementById('setlist-mini');
-    mini.innerHTML = '';
-    ITEMS.forEach((_,i) => {{
+    const dotsEl = document.getElementById('dots');
+    dotsEl.innerHTML = '';
+    ITEMS.forEach((_, i) => {{
         const d = document.createElement('div');
-        d.className = 'dot' + (i===idx ? ' activo' : '');
+        d.className = 'dot' + (i === idx ? ' activo' : '');
         d.title = ITEMS[i].titulo;
-        d.onclick = () => {{ idx=i; renderCanto(); }};
-        mini.appendChild(d);
+        d.onclick = () => {{ idx = i; renderCanto(); }};
+        dotsEl.appendChild(d);
     }});
+
     // Cuerpo
     let html = '';
     const versos = item.versos;
     let i = 0;
-    while(i < versos.length){{
+    while (i < versos.length) {{
         const v = versos[i];
-        const tu = v.texto.trim().toUpperCase();
+        const tu = (v.texto || '').trim().toUpperCase();
         const esSecc = ['INTRO','CORO','PUENTE','ESTROFA','FINAL'].some(e => tu.startsWith(e));
-        if(esSecc && i > 0) html += '<br>';
-        if(v.tipo==='acordes' && i+1<versos.length && versos[i+1].tipo==='letra'){{
-            html += '<div style="margin-bottom:2px">';
+        if (esSecc && i > 0) html += '<div class="par-sep"></div>';
+
+        if (v.tipo === 'acordes' && i + 1 < versos.length && versos[i + 1].tipo === 'letra') {{
+            html += '<div class="par">';
             html += renderAcordes(v.texto);
-            html += '<br>' + escapar(versos[i+1].texto) + '</div>';
-            i+=2;
+            html += '<br>' + esc(versos[i + 1].texto);
+            html += '</div>';
+            i += 2;
+        }} else if (v.tipo === 'acordes') {{
+            html += '<div class="par">' + renderAcordes(v.texto) + '</div>';
+            i++;
         }} else {{
-            if(v.tipo==='acordes') html += '<div>' + renderAcordes(v.texto) + '</div>';
-            else html += '<div>' + escapar(v.texto) + '</div>';
+            html += '<div class="par">' + esc(v.texto) + '</div>';
             i++;
         }}
     }}
     document.getElementById('canto-body').innerHTML = html;
-    window.scrollTo(0,0);
+    document.getElementById('scroll-area').scrollTo(0, 0);
 }}
 
-function renderAcordes(linea){{
-    return linea.split(/(\s+)/).map(p => {{
-        if(!p || /^\s+$/.test(p)) return p.replace(/ /g,'&nbsp;');
-        let pl = p.replace(/[\(\)\[\]\.,:]/g,'').replace(/^(\/{{2,3}}|\|+)+/,'').replace(/(\/{{2,3}}|\|+)+$/,'');
-        if(/^[A-G][#b]?(m|Maj|maj|M|dim|dis|aug|aum|sus|add)?[\d]*(\/[A-G][#b]?)?$/.test(pl))
-            return '<span class="acorde">'+p+'</span>';
-        if(ETIQUETAS.includes(pl.toLowerCase()))
-            return '<span class="etiqueta">'+p+'</span>';
-        return escapar(p);
-    }}).join('');
-}}
-
-function navegar(dir){{
-    idx = Math.max(0, Math.min(ITEMS.length-1, idx+dir));
+function navegar(dir) {{
+    idx = Math.max(0, Math.min(ITEMS.length - 1, idx + dir));
     renderCanto();
 }}
 
-function salir(){{
-    window.parent.postMessage({{type:'salir_presentacion'}},'*');
+// Fullscreen API
+function toggleFS() {{
+    const el = document.documentElement;
+    if (!document.fullscreenElement) {{
+        (el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen).call(el);
+        document.getElementById('fs-btn').textContent = '✕ Salir pantalla completa';
+    }} else {{
+        (document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen).call(document);
+        document.getElementById('fs-btn').textContent = '⛶ Pantalla completa';
+    }}
 }}
 
+document.addEventListener('fullscreenchange', () => {{
+    if (!document.fullscreenElement)
+        document.getElementById('fs-btn').textContent = '⛶ Pantalla completa';
+}});
+
+// Teclado
 document.addEventListener('keydown', e => {{
-    if(e.key==='ArrowRight'||e.key==='ArrowDown') navegar(1);
-    if(e.key==='ArrowLeft'||e.key==='ArrowUp') navegar(-1);
-    if(e.key==='Escape') salir();
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {{
+        e.preventDefault(); navegar(1);
+    }}
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {{
+        e.preventDefault(); navegar(-1);
+    }}
+    if (e.key === 'f' || e.key === 'F') toggleFS();
+}});
+
+// Swipe en móvil
+let touchX = 0;
+document.addEventListener('touchstart', e => {{ touchX = e.touches[0].clientX; }});
+document.addEventListener('touchend', e => {{
+    const dx = e.changedTouches[0].clientX - touchX;
+    if (Math.abs(dx) > 60) navegar(dx < 0 ? 1 : -1);
+}});
+
+// Auto-fullscreen al abrir
+window.addEventListener('load', () => {{
+    setTimeout(() => {{
+        try {{
+            document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
+            document.getElementById('fs-btn').textContent = '✕ Salir pantalla completa';
+        }} catch(e) {{}}
+    }}, 300);
 }});
 
 renderCanto();
 </script>
-</body></html>"""
+</body>
+</html>"""
 
-    components.html(html, height=700, scrolling=True)
+    components.html(html, height=750, scrolling=False)
+
 
 
 # ─────────────────────────────────────────────────────────────────────
