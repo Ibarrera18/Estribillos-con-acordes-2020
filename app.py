@@ -1,28 +1,21 @@
 """
-Estribillos con Acordes — Cancionero Digital v2
-Mejoras implementadas:
-  1. Índice lateral con filtro por tono
-  2. Modo presentación (pantalla completa)
-  3. Favoritos con session_state
-  4. Exportar PDF transpuesto (fpdf2)
-  5. Detección de modo mayor/menor en tono
-  6. Caché persistente JSON — carga instantánea
+Estribillos con Acordes 2020 — Cancionero Digital
 """
-
 import streamlit as st
 import pdfplumber
 import json
 import re
 import os
 from fpdf import FPDF
+from fpdf.enums import XPos, YPos
 
 # ─────────────────────────────────────────────────────────────────────
 #  CONSTANTES
 # ─────────────────────────────────────────────────────────────────────
-ESCALA    = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']
-BEMOLES   = {'Db':'C#','Eb':'D#','Gb':'F#','Ab':'G#','Bb':'A#'}
-ETIQUETAS = ['intro','coro','puente','final','estrofa','sigue','notas',
-             'del','al','fin','vuelta']
+ESCALA     = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']
+BEMOLES    = {'Db':'C#','Eb':'D#','Gb':'F#','Ab':'G#','Bb':'A#'}
+ETIQUETAS  = ['intro','coro','puente','final','estrofa','sigue','notas',
+              'del','al','fin','vuelta']
 NOMBRE_PDF = 'ESTRIBILLOS CON ACORDES 2020.pdf'
 CACHE_JSON = 'cancionero.json'
 TONOS_ORDEN = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B',
@@ -35,7 +28,6 @@ def normalizar_nota(nota):
     return BEMOLES.get(nota, nota)
 
 def obtener_tono_base(tono_str):
-    """Retorna (nota_raiz, es_menor)."""
     if not tono_str:
         return 'C', False
     m = re.search(r'([A-G][#b]?)(m)?', tono_str.strip())
@@ -81,10 +73,10 @@ def transponer_linea(linea, semitonos):
             continue
         core = re.sub(r'^(?:/{2,3}|\|+|\[:|\[)+', '', parte)
         core = re.sub(r'(?:/{2,3}|\|+|:\]|\])+$', '', core)
-        es   = patron.match(core)
+        es = patron.match(core)
         if not es and '-' in core:
             frags = core.replace('(','').replace(')','').split('-')
-            es    = all(patron.match(f) for f in frags if f)
+            es = all(patron.match(f) for f in frags if f)
         if es:
             _st = semitonos
             def cambiar(m, st=_st):
@@ -98,7 +90,7 @@ def transponer_linea(linea, semitonos):
     return resultado
 
 # ─────────────────────────────────────────────────────────────────────
-#  CARGA DEL CANCIONERO (caché JSON → PDF fallback)
+#  CARGA DEL CANCIONERO
 # ─────────────────────────────────────────────────────────────────────
 @st.cache_data(show_spinner=False)
 def cargar_cancionero():
@@ -139,116 +131,104 @@ def cargar_cancionero():
     return canciones
 
 # ─────────────────────────────────────────────────────────────────────
-#  EXPORTAR PDF
+#  PDF EXPORT
 # ─────────────────────────────────────────────────────────────────────
-def limpiar_texto_pdf(texto):
-    # Colapsar espacios multiples (artefacto del layout=True de pdfplumber)
+def limpiar_pdf(texto):
+    """Colapsa espacios múltiples y convierte a latin-1."""
     texto = re.sub(r' {2,}', ' ', texto).strip()
     reemplazos = {
-        '’': "'", '‘': "'", '“': '"', '”': '"',
-        '–': '-', '—': '-', '…': '...', '·': '.',
-        'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u',
-        'Á': 'A', 'É': 'E', 'Í': 'I', 'Ó': 'O', 'Ú': 'U',
-        'à': 'a', 'è': 'e', 'ì': 'i', 'ò': 'o', 'ù': 'u',
-        'ñ': 'n', 'Ñ': 'N', 'ü': 'u', 'Ü': 'U',
-        '¿': '?', '¡': '!',
+        '\u2019':"'", '\u2018':"'", '\u201c':'"', '\u201d':'"',
+        '\u2013':'-', '\u2014':'-', '\u2026':'...', '\u00b7':'.',
+        '\u00e1':'a', '\u00e9':'e', '\u00ed':'i', '\u00f3':'o', '\u00fa':'u',
+        '\u00c1':'A', '\u00c9':'E', '\u00cd':'I', '\u00d3':'O', '\u00da':'U',
+        '\u00e0':'a', '\u00e8':'e', '\u00ec':'i', '\u00f2':'o', '\u00f9':'u',
+        '\u00f1':'n', '\u00d1':'N', '\u00fc':'u', '\u00dc':'U',
+        '\u00bf':'?', '\u00a1':'!',
     }
     for k, v in reemplazos.items():
         texto = texto.replace(k, v)
     return texto.encode('latin-1', errors='replace').decode('latin-1')
 
-
-
 def generar_pdf(cancion, semitonos, t_destino, es_menor):
     """
-    Genera PDF con acordes alineados encima de la letra.
-    Usa fuente monoespaciada (Courier) para que los espacios
-    del PDF original de pdfplumber se traduzcan 1:1 en posicion visual.
+    PDF con acordes ENCIMA de la letra (estilo partitura).
+    Ambas líneas usan Courier del mismo tamaño para alineación 1:1.
     """
-    from fpdf.enums import XPos, YPos
-    FONT_SIZE_ACORDES = 8
-    FONT_SIZE_LETRA   = 9
-    LINE_H_ACORDE     = 4.5
-    LINE_H_LETRA      = 5.5
+    FS = 9          # font size único para acordes y letra
+    LH_A = 4.5     # line height acordes
+    LH_L = 5.5     # line height letra
 
     pdf = FPDF()
     pdf.set_margins(12, 12, 12)
     pdf.set_auto_page_break(auto=True, margin=12)
     pdf.add_page()
 
-    # ── Cabecera ──────────────────────────────────────────────
+    # Cabecera
     pdf.set_font('Helvetica', 'B', 13)
     pdf.set_text_color(160, 110, 20)
-    pdf.multi_cell(0, 8, limpiar_texto_pdf(cancion['titulo']), align='L',
+    pdf.multi_cell(0, 8, limpiar_pdf(cancion['titulo']), align='L',
                    new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     pdf.set_font('Helvetica', '', 8)
     pdf.set_text_color(110, 110, 130)
-    sufijo    = 'm' if es_menor else ''
-    tono_orig = limpiar_texto_pdf(cancion['tono'] or '?')
-    pdf.cell(0, 5, f"Tono original: {tono_orig}   ->   Transpuesto a: {t_destino}{sufijo}",
+    sfx = 'm' if es_menor else ''
+    pdf.cell(0, 5,
+             f"Tono original: {limpiar_pdf(cancion['tono'] or '?')}   ->   Transpuesto a: {t_destino}{sfx}",
              new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.ln(2)
     pdf.set_draw_color(180, 160, 100)
     pdf.line(12, pdf.get_y(), 198, pdf.get_y())
     pdf.ln(5)
 
-    # ── Versos ────────────────────────────────────────────────
     versos = cancion['versos']
     i = 0
     while i < len(versos):
         v = versos[i]
-        texto_up = v['texto'].strip().upper()
+        tu = v['texto'].strip().upper()
 
-        # Separador de sección (CORO, INTRO, etc.)
-        if any(texto_up.startswith(e.upper())
-               for e in ['INTRO','CORO','PUENTE','ESTROFA','FINAL']) and i > 0:
+        if any(tu.startswith(e.upper()) for e in ['INTRO','CORO','PUENTE','ESTROFA','FINAL']) and i > 0:
             pdf.ln(4)
 
         if v['tipo'] == 'acordes' and (i+1 < len(versos)) and versos[i+1]['tipo'] == 'letra':
-            # ── Par acorde + letra: renderizar juntos con misma fuente/tamaño ──
-            acordes_raw = transponer_linea(v['texto'], semitonos)
-            letra_raw   = versos[i+1]['texto']
+            # — Acorde encima, letra abajo, misma fuente Courier FS pt —
+            acorde_txt = limpiar_pdf(transponer_linea(v['texto'], semitonos))
+            letra_txt  = limpiar_pdf(versos[i+1]['texto'])
 
-            # Limpiar y colapsar espacios para PDF
-            acordes_pdf = limpiar_texto_pdf(acordes_raw)
-            letra_pdf   = limpiar_texto_pdf(letra_raw)
-
-            # Usar Courier mismo tamaño para AMBAS lineas → alineacion 1:1
-            pdf.set_font('Courier', 'B', FONT_SIZE_LETRA)
-            pdf.set_text_color(160, 110, 20)   # dorado oscuro para acordes
-            pdf.multi_cell(0, LINE_H_ACORDE, acordes_pdf, align='L',
+            pdf.set_font('Courier', 'B', FS)
+            pdf.set_text_color(160, 110, 20)
+            pdf.multi_cell(0, LH_A, acorde_txt, align='L',
                            new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
-            pdf.set_font('Courier', '', FONT_SIZE_LETRA)
+            pdf.set_font('Courier', '', FS)
             pdf.set_text_color(30, 30, 30)
-            pdf.multi_cell(0, LINE_H_LETRA, letra_pdf, align='L',
+            pdf.multi_cell(0, LH_L, letra_txt, align='L',
                            new_x=XPos.LMARGIN, new_y=YPos.NEXT)
             i += 2
 
         elif v['tipo'] == 'acordes':
-            # Acorde suelto (sin letra abajo)
-            acordes_pdf = limpiar_texto_pdf(transponer_linea(v['texto'], semitonos))
-            pdf.set_font('Courier', 'B', FONT_SIZE_ACORDES)
+            acorde_txt = limpiar_pdf(transponer_linea(v['texto'], semitonos))
+            pdf.set_font('Courier', 'B', FS)
             pdf.set_text_color(160, 110, 20)
-            pdf.multi_cell(0, LINE_H_ACORDE, acordes_pdf, align='L',
+            pdf.multi_cell(0, LH_A, acorde_txt, align='L',
                            new_x=XPos.LMARGIN, new_y=YPos.NEXT)
             i += 1
 
         else:
-            # Letra sola
-            letra_pdf = limpiar_texto_pdf(v['texto'])
-            pdf.set_font('Courier', '', FONT_SIZE_LETRA)
+            letra_txt = limpiar_pdf(v['texto'])
+            pdf.set_font('Courier', '', FS)
             pdf.set_text_color(30, 30, 30)
-            pdf.multi_cell(0, LINE_H_LETRA, letra_pdf, align='L',
+            pdf.multi_cell(0, LH_L, letra_txt, align='L',
                            new_x=XPos.LMARGIN, new_y=YPos.NEXT)
             i += 1
 
     return bytes(pdf.output())
 
-
-
-PATRON_PURO = re.compile(r'^[A-G][#b]?(m|Maj|maj|M|dim|dis|aug|aum|sus|add)?\d*(/[A-G][#b]?)?$')
+# ─────────────────────────────────────────────────────────────────────
+#  RENDER HTML
+# ─────────────────────────────────────────────────────────────────────
+PATRON_PURO = re.compile(
+    r'^[A-G][#b]?(m|Maj|maj|M|dim|dis|aug|aum|sus|add)?\d*(/[A-G][#b]?)?$'
+)
 
 def render_acordes(linea, semitonos):
     linea_t = transponer_linea(linea, semitonos)
@@ -274,18 +254,9 @@ def render_letra(linea):
     return linea.replace(' ', '&nbsp;') + '<br>'
 
 # ─────────────────────────────────────────────────────────────────────
-#  CSS
+#  CSS — TEMA OSCURO / CLARO
 # ─────────────────────────────────────────────────────────────────────
-def get_css(modo_pres=False, tema='oscuro'):
-    pres = """
-    .sb-header,.stat-row,.controles-wrap,.stDownloadButton>button,
-    [data-testid="stBottom"] { display:none !important; }
-    .canto-wrap { border:none !important; padding:0 !important; background:transparent !important; }
-    """ if modo_pres else ""
-    return f"""
-<style>
-/* Tema oscuro (default) */
-:root {{
+CSS_OSCURO = """
     --bg        : #0d0d0f;
     --surf      : #141418;
     --surf2     : #1c1c22;
@@ -300,12 +271,9 @@ def get_css(modo_pres=False, tema='oscuro'):
     --lblfg     : #7cb4f0;
     --green     : #4caf7d;
     --red       : #e07b5a;
-    --favfg     : #e05a6a;
-    --mono      : 'JetBrains Mono','Fira Code','Consolas',monospace;
-    --serif     : 'EB Garamond',Georgia,serif;
-}}
-/* Tema claro */
-{'body.tema-claro, .tema-claro' if False else 'body.tema-claro'} {{
+"""
+
+CSS_CLARO = """
     --bg        : #f5f2eb;
     --surf      : #ffffff;
     --surf2     : #eeeae0;
@@ -320,119 +288,132 @@ def get_css(modo_pres=False, tema='oscuro'):
     --lblfg     : #1a60b0;
     --green     : #1a7a40;
     --red       : #c04020;
-    --favfg     : #c02040;
+"""
+
+def get_css(tema='oscuro', modo_pres=False):
+    vars_tema = CSS_CLARO if tema == 'claro' else CSS_OSCURO
+
+    pres_hide = """
+    .sb-header, .stat-row, .stDownloadButton,
+    [data-testid="stBottom"] { display:none !important; }
+    .canto-wrap { border:none !important; padding:0 !important;
+                  background:transparent !important; }
+    """ if modo_pres else ""
+
+    return f"""
+<style>
+:root {{{vars_tema}
+    --mono  : 'JetBrains Mono','Fira Code','Consolas',monospace;
+    --serif : 'EB Garamond',Georgia,serif;
 }}
-.stApp,[data-testid="stAppViewContainer"] {{ background:var(--bg) !important; }}
-html,body {{ background:var(--bg) !important; }}
-#MainMenu,footer,header {{ visibility:hidden; }}
-[data-testid="stToolbar"] {{ display:none; }}
+.stApp,[data-testid="stAppViewContainer"],
+html, body {{ background: var(--bg) !important; color: var(--text) !important; }}
+#MainMenu, footer, header {{ visibility: hidden; }}
+[data-testid="stToolbar"] {{ display: none; }}
 [data-testid="stSidebar"] {{
-    background:var(--surf3) !important;
-    border-right:1px solid var(--border) !important;
+    background: var(--surf3) !important;
+    border-right: 1px solid var(--border) !important;
 }}
-[data-testid="stSidebar"] * {{ color:var(--text) !important; }}
+[data-testid="stSidebar"] * {{ color: var(--text) !important; }}
 /* inputs */
-.stTextInput input,.stNumberInput input {{
-    background:var(--surf2) !important; border:1px solid var(--border) !important;
-    border-radius:6px !important; color:var(--text) !important;
-    font-family:var(--mono) !important; font-size:.84rem !important;
+.stTextInput input, .stNumberInput input {{
+    background: var(--surf2) !important; border: 1px solid var(--border) !important;
+    border-radius: 6px !important; color: var(--text) !important;
+    font-family: var(--mono) !important; font-size: .84rem !important;
 }}
-.stTextInput input:focus,.stNumberInput input:focus {{
-    border-color:var(--accent) !important;
-    box-shadow:0 0 0 2px rgba(212,168,67,.13) !important;
+.stTextInput input:focus, .stNumberInput input:focus {{
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 2px rgba(140,100,30,.18) !important;
 }}
-.stSelectbox>div>div {{
-    background:var(--surf2) !important; border:1px solid var(--border) !important;
-    border-radius:6px !important; color:var(--text) !important;
-    font-family:var(--mono) !important; font-size:.82rem !important;
+.stSelectbox > div > div {{
+    background: var(--surf2) !important; border: 1px solid var(--border) !important;
+    border-radius: 6px !important; color: var(--text) !important;
+    font-family: var(--mono) !important; font-size: .82rem !important;
 }}
-.stSelectbox label,.stTextInput label,.stSlider label,
-.stRadio label,.stNumberInput label {{ color:var(--muted) !important; font-size:.76rem !important; }}
+.stSelectbox label, .stTextInput label, .stSlider label,
+.stRadio label, .stNumberInput label {{
+    color: var(--muted) !important; font-size: .76rem !important;
+}}
 .stSlider [data-baseweb="slider"] [role="slider"] {{
-    background:var(--accent) !important; border-color:var(--accent) !important;
+    background: var(--accent) !important; border-color: var(--accent) !important;
 }}
 /* botones */
-.stButton>button {{
-    background:var(--surf2) !important; border:1px solid var(--border) !important;
-    color:var(--text) !important; border-radius:6px !important;
-    font-family:var(--mono) !important; font-size:.79rem !important;
-    transition:border-color .14s, background .14s;
+.stButton > button {{
+    background: var(--surf2) !important; border: 1px solid var(--border) !important;
+    color: var(--text) !important; border-radius: 6px !important;
+    font-family: var(--mono) !important; font-size: .79rem !important;
+    transition: border-color .14s, background .14s;
 }}
-.stButton>button:hover {{ border-color:var(--accent) !important; background:var(--surf) !important; }}
-.stDownloadButton>button {{
-    background:var(--accdim) !important; border:1px solid var(--accent) !important;
-    color:var(--cfg) !important; border-radius:6px !important;
-    font-family:var(--mono) !important; font-size:.79rem !important;
+.stButton > button:hover {{
+    border-color: var(--accent) !important; background: var(--surf) !important;
 }}
-hr {{ border-color:var(--border) !important; margin:6px 0 !important; }}
+.stDownloadButton > button {{
+    background: var(--accdim) !important; border: 1px solid var(--accent) !important;
+    color: var(--cfg) !important; border-radius: 6px !important;
+    font-family: var(--mono) !important; font-size: .79rem !important;
+}}
+hr {{ border-color: var(--border) !important; margin: 6px 0 !important; }}
 /* header */
 .sb-header {{
-    display:flex; align-items:baseline; gap:14px;
-    border-bottom:1px solid var(--border);
-    padding-bottom:14px; margin-bottom:18px;
+    display: flex; align-items: baseline; gap: 14px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 14px; margin-bottom: 18px;
 }}
 .sb-header h1 {{
-    font-family:var(--serif); font-size:2rem; font-weight:400;
-    color:var(--accent); margin:0; letter-spacing:.04em;
+    font-family: var(--serif); font-size: 2rem; font-weight: 400;
+    color: var(--accent); margin: 0; letter-spacing: .04em;
 }}
 .sb-header span {{
-    font-family:var(--mono); font-size:.68rem; color:var(--muted);
-    letter-spacing:.14em; text-transform:uppercase;
+    font-family: var(--mono); font-size: .68rem; color: var(--muted);
+    letter-spacing: .14em; text-transform: uppercase;
 }}
 /* stats */
-.stat-row {{ display:flex; gap:9px; margin:5px 0 16px; flex-wrap:wrap; }}
+.stat-row {{ display: flex; gap: 9px; margin: 5px 0 16px; flex-wrap: wrap; }}
 .stat-badge {{
-    padding:3px 10px; border-radius:4px; background:var(--surf2);
-    border:1px solid var(--border); font-family:var(--mono);
-    font-size:.68rem; color:var(--muted); letter-spacing:.05em;
+    padding: 3px 10px; border-radius: 4px; background: var(--surf2);
+    border: 1px solid var(--border); font-family: var(--mono);
+    font-size: .68rem; color: var(--muted); letter-spacing: .05em;
 }}
-.stat-badge b {{ color:var(--accent); }}
+.stat-badge b {{ color: var(--accent); }}
 /* tono pill */
 .tono-pill {{
-    display:inline-block; padding:2px 10px; border-radius:20px;
-    background:var(--cbg); border:1px solid var(--accdim);
-    color:var(--cfg); font-family:var(--mono); font-size:.8rem;
+    display: inline-block; padding: 2px 10px; border-radius: 20px;
+    background: var(--cbg); border: 1px solid var(--accdim);
+    color: var(--cfg); font-family: var(--mono); font-size: .8rem;
 }}
-.tono-m {{ border-color:#4a6a9a !important; color:#8ab0e0 !important; }}
+.tono-m {{ border-color: #4a6a9a !important; color: #6a98c8 !important; }}
 /* transposición */
-.tr-up   {{ color:var(--green); font-family:var(--mono); font-size:.77rem; margin:3px 0; }}
-.tr-down {{ color:var(--red);   font-family:var(--mono); font-size:.77rem; margin:3px 0; }}
+.tr-up   {{ color: var(--green); font-family: var(--mono); font-size: .77rem; margin: 3px 0; }}
+.tr-down {{ color: var(--red);   font-family: var(--mono); font-size: .77rem; margin: 3px 0; }}
 /* canto */
 .canto-wrap {{
-    background:var(--surf); border:1px solid var(--border); border-radius:10px;
-    padding:24px 28px 34px; margin-top:14px; position:relative;
+    background: var(--surf); border: 1px solid var(--border); border-radius: 10px;
+    padding: 24px 28px 34px; margin-top: 14px;
 }}
 .canto-titulo {{
-    font-family:var(--serif); font-size:1.5rem; font-weight:400;
-    color:var(--accent); margin-bottom:16px; letter-spacing:.02em;
-    border-bottom:1px solid var(--border); padding-bottom:10px;
+    font-family: var(--serif); font-size: 1.5rem; font-weight: 400;
+    color: var(--accent); margin-bottom: 16px; letter-spacing: .02em;
+    border-bottom: 1px solid var(--border); padding-bottom: 10px;
 }}
 .acorde {{
-    background:var(--cbg); color:var(--cfg);
-    border-radius:3px; padding:0 3px; font-weight:600;
+    background: var(--cbg); color: var(--cfg);
+    border-radius: 3px; padding: 0 3px; font-weight: 600;
 }}
-.etiqueta {{ color:var(--lblfg); font-weight:700; }}
+.etiqueta {{ color: var(--lblfg); font-weight: 700; }}
 .par {{
-    break-inside:avoid-column; page-break-inside:avoid;
-    display:block; margin-bottom:2px;
+    break-inside: avoid-column; page-break-inside: avoid;
+    display: block; margin-bottom: 2px;
 }}
-.par-sep {{ height:14px; break-inside:avoid-column; }}
-{pres}
+.par-sep {{ height: 14px; break-inside: avoid-column; }}
+{pres_hide}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-<script>
-(function(){{
-  var t = '{tema}';
-  if(t==='claro') document.body.classList.add('tema-claro');
-  else document.body.classList.remove('tema-claro');
-}})();
-</script>
 """
 
 # ─────────────────────────────────────────────────────────────────────
-#  APP PRINCIPAL
+#  APP
 # ─────────────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title='Estribillos con Acordes',
@@ -442,7 +423,8 @@ st.set_page_config(
 )
 
 # Session state
-for k, v in [('favoritos', set()), ('seleccion', None), ('presentacion', False), ('tema', 'oscuro')]:
+for k, v in [('favoritos', set()), ('seleccion', None),
+             ('presentacion', False), ('tema', 'oscuro')]:
     if k not in st.session_state:
         st.session_state[k] = v
 
@@ -451,7 +433,7 @@ with st.spinner('Cargando cancionero…'):
     canciones = cargar_cancionero()
 
 if not canciones:
-    st.error('⚠️ No se encontró el archivo PDF ni el cache. Coloca el PDF junto al script.')
+    st.error('⚠️ No se encontró el PDF ni el cache.')
     st.stop()
 
 tonos_disponibles = sorted(
@@ -462,13 +444,15 @@ tonos_disponibles = sorted(
 # ── SIDEBAR ───────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown(
-        '<div style="font-family:\'EB Garamond\',serif;font-size:1.25rem;color:#d4a843;'
-        'border-bottom:1px solid #2a2a35;padding-bottom:9px;margin-bottom:12px;">📖 Índice</div>',
+        '<div style="font-family:\'EB Garamond\',serif;font-size:1.25rem;'
+        'color:var(--accent,#d4a843);border-bottom:1px solid #2a2a35;'
+        'padding-bottom:9px;margin-bottom:12px;">📖 Índice</div>',
         unsafe_allow_html=True
     )
-    busq_sb    = st.text_input('🔍', placeholder='buscar canto…', label_visibility='collapsed', key='sb_busq')
-    solo_favs  = st.checkbox('⭐ Solo favoritos')
-    tono_sb    = st.selectbox('Tono', ['Todos'] + tonos_disponibles, key='sb_tono')
+    busq_sb   = st.text_input('🔍', placeholder='buscar canto…',
+                               label_visibility='collapsed', key='sb_busq')
+    solo_favs = st.checkbox('⭐ Solo favoritos')
+    tono_sb   = st.selectbox('Tono', ['Todos'] + tonos_disponibles, key='sb_tono')
 
     lista_sb = canciones
     if busq_sb:
@@ -478,31 +462,29 @@ with st.sidebar:
     if tono_sb != 'Todos':
         lista_sb = [c for c in lista_sb if c['tono'].strip() == tono_sb]
 
-    st.markdown(
-        f'<div style="font-family:\'JetBrains Mono\',monospace;font-size:.66rem;'
-        f'color:#2e2e3a;margin-bottom:7px;">{len(lista_sb)} de {len(canciones)}</div>',
-        unsafe_allow_html=True
-    )
+    st.caption(f'{len(lista_sb)} de {len(canciones)} cantos')
+
     for c in lista_sb:
         es_fav = c['titulo'] in st.session_state.favoritos
-        label  = ('⭐ ' if es_fav else '') + c['titulo'][:46] + ('…' if len(c['titulo'])>46 else '')
+        label  = ('⭐ ' if es_fav else '') + c['titulo'][:46] + ('…' if len(c['titulo']) > 46 else '')
         if st.button(label, key=f'sb_{c["titulo"]}', use_container_width=True):
             st.session_state.seleccion = c['titulo']
             st.rerun()
-    st.markdown(
-        f'<div style="margin-top:18px;font-family:\'JetBrains Mono\',monospace;'
-        f'font-size:.63rem;color:#252532;border-top:1px solid #1a1a22;padding-top:9px;">'
-        f'{len(st.session_state.favoritos)} favorito(s)</div>',
-        unsafe_allow_html=True
-    )
+
+    st.caption(f'{len(st.session_state.favoritos)} favorito(s)')
 
 # ── CSS ───────────────────────────────────────────────────────────────
-st.markdown(get_css(st.session_state.presentacion, st.session_state.tema), unsafe_allow_html=True)
+st.markdown(
+    get_css(st.session_state.tema, st.session_state.presentacion),
+    unsafe_allow_html=True
+)
 
 # ── HEADER ───────────────────────────────────────────────────────────
 st.markdown(
-    '<div class="sb-header"><h1>📖 Estribillos con Acordes</h1>'
-    '<span>Cancionero Digital · 2020</span></div>',
+    '<div class="sb-header">'
+    '<h1>📖 Estribillos con Acordes</h1>'
+    '<span>Cancionero Digital · 2020</span>'
+    '</div>',
     unsafe_allow_html=True
 )
 st.markdown(
@@ -510,7 +492,6 @@ st.markdown(
     f'<div class="stat-badge"><b>{len(canciones)}</b>&nbsp;cantos</div>'
     f'<div class="stat-badge"><b>126</b>&nbsp;páginas</div>'
     f'<div class="stat-badge">⭐&nbsp;<b>{len(st.session_state.favoritos)}</b>&nbsp;favoritos</div>'
-    f'<div class="stat-badge">Tonos:&nbsp;<b>C·D·E·F·G·A·B</b></div>'
     f'</div>',
     unsafe_allow_html=True
 )
@@ -518,6 +499,7 @@ st.markdown(
 # ── SELECTOR + FAVORITO ───────────────────────────────────────────────
 col_sel, col_fav = st.columns([5, 1])
 titulos = [c['titulo'] for c in canciones]
+
 with col_sel:
     idx_def = 0
     if st.session_state.seleccion and st.session_state.seleccion in titulos:
@@ -533,27 +515,31 @@ idx_base = ESCALA.index(t_base) if t_base in ESCALA else 0
 es_fav   = seleccion in st.session_state.favoritos
 
 with col_fav:
-    if st.button('⭐ Quitar' if es_fav else '☆ Guardar', use_container_width=True, key='btn_fav'):
+    if st.button('⭐ Quitar' if es_fav else '☆ Guardar',
+                 use_container_width=True, key='btn_fav'):
         if es_fav:
             st.session_state.favoritos.discard(seleccion)
         else:
             st.session_state.favoritos.add(seleccion)
         st.rerun()
 
-# ── CONTROLES ─────────────────────────────────────────────────────────
-c1, c2, c3, c4, c5, c6 = st.columns([1.1, 1.3, 1, 1, 1, 1])
+# ── CONTROLES (una fila, 7 columnas) ─────────────────────────────────
+c1, c2, c3, c4, c5, c6, c7 = st.columns([1.2, 1.4, 1, 1, 1, 1, 1])
 
 with c1:
     mc = 'tono-m' if es_menor else ''
     ml = f"{cancion['tono']}{'  (menor)' if es_menor else ''}"
     st.markdown(
-        f'<div style="padding-top:8px;font-family:var(--mono,monospace);font-size:.78rem;color:#5a5868">'
-        f'Tono:&nbsp;<span class="tono-pill {mc}">{ml or "—"}</span></div>',
+        f'<div style="padding-top:8px;font-family:monospace;font-size:.78rem;'
+        f'color:var(--muted,#54525f)">Tono:&nbsp;'
+        f'<span class="tono-pill {mc}">{ml or "—"}</span></div>',
         unsafe_allow_html=True
     )
+
 with c2:
-    modo_t = st.radio('M', ['Tono destino','Semitonos (capo)'],
+    modo_t = st.radio('M', ['Tono destino', 'Semitonos (capo)'],
                       horizontal=True, label_visibility='collapsed', key='modo_t')
+
 with c3:
     if modo_t == 'Tono destino':
         t_dest    = st.selectbox('T', ESCALA, index=idx_base, label_visibility='collapsed')
@@ -561,43 +547,47 @@ with c3:
     else:
         semitonos = int(st.number_input('S', -12, 12, 0, label_visibility='collapsed'))
         t_dest    = ESCALA[(idx_base + semitonos) % 12]
+
 with c4:
     tamano = st.slider('F', 13, 42, 18, label_visibility='collapsed')
+
 with c5:
-    cols_v = st.radio('C', ['1 col','2 col'], horizontal=True, label_visibility='collapsed')
+    cols_v = st.radio('Vista', ['1 columna', '2 columnas'],
+                      horizontal=True, label_visibility='collapsed', key='cols_v')
+
 with c6:
+    if st.button('🎬 Salir' if st.session_state.presentacion else '🎬 Presentar',
+                 use_container_width=True, key='btn_pres'):
+        st.session_state.presentacion = not st.session_state.presentacion
+        st.rerun()
+
+with c7:
     tema_label = '☀️ Claro' if st.session_state.tema == 'oscuro' else '🌙 Oscuro'
-    col_pres, col_tema = st.columns(2)
-    with col_pres:
-        if st.button('🎬 Salir' if st.session_state.presentacion else '🎬 Presentar',
-                     use_container_width=True, key='btn_pres'):
-            st.session_state.presentacion = not st.session_state.presentacion
-            st.rerun()
-    with col_tema:
-        if st.button(tema_label, use_container_width=True, key='btn_tema'):
-            st.session_state.tema = 'claro' if st.session_state.tema == 'oscuro' else 'oscuro'
-            st.rerun()
+    if st.button(tema_label, use_container_width=True, key='btn_tema'):
+        st.session_state.tema = 'claro' if st.session_state.tema == 'oscuro' else 'oscuro'
+        st.rerun()
 
 # ── INDICADOR TRANSPOSICIÓN ───────────────────────────────────────────
 delta = semitonos if semitonos <= 6 else semitonos - 12
 if delta != 0:
+    sfx   = 'm' if es_menor else ''
     signo = '▲' if delta > 0 else '▼'
     clase = 'tr-up' if delta > 0 else 'tr-down'
-    sfx   = 'm' if es_menor else ''
     st.markdown(
-        f'<div class="{clase}">{signo} {abs(delta)} semitono{"s" if abs(delta)>1 else ""}'
+        f'<div class="{clase}">{signo} {abs(delta)} '
+        f'semitono{"s" if abs(delta)>1 else ""}'
         f'&nbsp;·&nbsp;{t_base}{sfx} → {t_dest}{sfx}</div>',
         unsafe_allow_html=True
     )
 
 # ── EXPORT PDF ────────────────────────────────────────────────────────
+sfx_pdf  = 'm' if es_menor else ''
 pdf_bytes = generar_pdf(cancion, semitonos, t_dest, es_menor)
-nombre_f  = re.sub(r'[^\w\s-]','', cancion['titulo'])[:38].strip().replace(' ','_')
-sfx       = 'm' if es_menor else ''
+nombre_f  = re.sub(r'[^\w\s-]', '', cancion['titulo'])[:38].strip().replace(' ', '_')
 st.download_button(
-    label     = f'⬇ Descargar PDF — {t_dest}{sfx}',
+    label     = f'⬇ Descargar PDF — {t_dest}{sfx_pdf}',
     data      = pdf_bytes,
-    file_name = f'{nombre_f}_{t_dest}{sfx}.pdf',
+    file_name = f'{nombre_f}_{t_dest}{sfx_pdf}.pdf',
     mime      = 'application/pdf',
     key       = 'dl_pdf'
 )
@@ -605,24 +595,27 @@ st.download_button(
 st.divider()
 
 # ── RENDER CANTO ─────────────────────────────────────────────────────
-num_cols  = 1 if cols_v == '1 col' else 2
+num_cols  = 2 if cols_v == '2 columnas' else 1
 col_style = f'column-count:{num_cols};column-gap:52px;' if num_cols > 1 else ''
 
 html = (
     f'<div class="canto-wrap">'
     f'<div class="canto-titulo">{cancion["titulo"]}</div>'
-    f'<div style="font-family:\'JetBrains Mono\',\'Fira Code\',\'Consolas\',monospace;'
+    f'<div style="font-family:\'JetBrains Mono\',\'Consolas\',monospace;'
     f'font-size:{tamano}px;line-height:1.65;{col_style}">'
 )
 
 versos = cancion['versos']
 i = 0
 while i < len(versos):
-    v        = versos[i]
-    tu       = v['texto'].strip().upper()
-    es_secc  = any(tu.startswith(e.upper()) for e in ['INTRO','CORO','PUENTE','ESTROFA','FINAL'])
+    v       = versos[i]
+    tu      = v['texto'].strip().upper()
+    es_secc = any(tu.startswith(e.upper())
+                  for e in ['INTRO','CORO','PUENTE','ESTROFA','FINAL'])
+
     if es_secc and i > 0:
         html += '<div class="par-sep"></div>'
+
     if v['tipo'] == 'acordes' and (i+1 < len(versos)) and versos[i+1]['tipo'] == 'letra':
         html += '<div class="par">'
         html += render_acordes(v['texto'], semitonos)
@@ -631,7 +624,10 @@ while i < len(versos):
         i += 2
     else:
         html += '<div class="par">'
-        html += render_acordes(v['texto'], semitonos) if v['tipo'] == 'acordes' else render_letra(v['texto'])
+        if v['tipo'] == 'acordes':
+            html += render_acordes(v['texto'], semitonos)
+        else:
+            html += render_letra(v['texto'])
         html += '</div>'
         i += 1
 
@@ -639,11 +635,13 @@ html += '</div></div>'
 st.markdown(html, unsafe_allow_html=True)
 
 # ── FOOTER ────────────────────────────────────────────────────────────
-sfx  = 'm' if es_menor else ''
-favs = f'· ⭐ {len(st.session_state.favoritos)} guardados' if st.session_state.favoritos else ''
+sfx_f = 'm' if es_menor else ''
 st.markdown(
-    f'<div style="margin-top:42px;text-align:center;font-family:\'JetBrains Mono\',monospace;'
-    f'font-size:.66rem;color:#252530;border-top:1px solid #181820;padding-top:10px;">'
-    f'Estribillos con Acordes 2020 · {len(canciones)} cantos · Tono: {t_dest}{sfx} {favs}</div>',
+    f'<div style="margin-top:42px;text-align:center;'
+    f'font-family:\'JetBrains Mono\',monospace;font-size:.66rem;'
+    f'color:var(--muted,#54525f);border-top:1px solid var(--border,#2a2a35);'
+    f'padding-top:10px;">'
+    f'Estribillos con Acordes 2020 · {len(canciones)} cantos · '
+    f'Tono: {t_dest}{sfx_f}</div>',
     unsafe_allow_html=True
 )
