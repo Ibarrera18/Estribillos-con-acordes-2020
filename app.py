@@ -1409,13 +1409,22 @@ if st.session_state.modo == 'presentacion':
         c = next((x for x in canciones if x['titulo'] == item['titulo']), None)
         if c:
             _, es_menor = obtener_tono_base(c['tono'])
+            semi = item['semitonos']
+            # Pre-transponer los versos en Python para que el JS solo renderice
+            versos_t = []
+            for v in c['versos']:
+                if v['tipo'] == 'acordes' and semi != 0:
+                    versos_t.append({'tipo': 'acordes',
+                                     'texto': transponer_linea(v['texto'], semi)})
+                else:
+                    versos_t.append(v)
             setlist_data.append({
                 'titulo'   : c['titulo'],
                 'tono_orig': c['tono'],
                 'tono_dest': item['t_dest'],
-                'semitonos': item['semitonos'],
+                'semitonos': semi,
                 'es_menor' : es_menor,
-                'versos'   : c['versos']
+                'versos'   : versos_t
             })
     render_presentacion(setlist_data, st.session_state.pres_idx, st.session_state.tema)
     if st.button('✕ Salir de presentación', key='salir_pres'):
