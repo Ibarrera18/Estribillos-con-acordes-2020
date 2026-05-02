@@ -78,8 +78,7 @@ def transponer_linea(linea, semitonos):
             frags = core.replace('(','').replace(')','').split('-')
             es = all(patron.match(f) for f in frags if f)
         if es:
-            _st = semitonos
-            def cambiar(m, st=_st):
+            def cambiar(m, st=semitonos):
                 n = normalizar_nota(m.group(0))
                 if n in ESCALA:
                     return ESCALA[(ESCALA.index(n) + st) % 12]
@@ -131,11 +130,10 @@ def cargar_cancionero():
     return canciones
 
 # ─────────────────────────────────────────────────────────────────────
-#  PDF EXPORT
+#  PDF EXPORT — acordes posicionados sobre la letra
 # ─────────────────────────────────────────────────────────────────────
-def limpiar_pdf(texto):
-    """Colapsa espacios múltiples y convierte a latin-1."""
-    texto = re.sub(r' {2,}', ' ', texto).strip()
+def limpiar_chars(texto):
+    """Convierte caracteres especiales a latin-1. NO colapsa espacios."""
     reemplazos = {
         '\u2019':"'", '\u2018':"'", '\u201c':'"', '\u201d':'"',
         '\u2013':'-', '\u2014':'-', '\u2026':'...', '\u00b7':'.',
@@ -149,75 +147,122 @@ def limpiar_pdf(texto):
         texto = texto.replace(k, v)
     return texto.encode('latin-1', errors='replace').decode('latin-1')
 
+def limpiar_letra(texto):
+    """Para líneas de letra: limpia caracteres Y colapsa espacios múltiples."""
+    texto = re.sub(r' {2,}', ' ', texto).strip()
+    return limpiar_chars(texto)
+
+def extraer_acordes_con_pos(linea):
+    """Extrae (columna, acorde) preservando posición original."""
+    tokens, current, start = [], '', 0
+    for i, ch in enumerate(linea):
+        if ch == ' ':
+            if current.strip():
+                tokens.append((start, current.strip()))
+            current = ''
+            start = i + 1
+        else:
+            if not current.strip():
+                start = i
+            current += ch
+    if current.strip():
+        tokens.append((start, current.strip()))
+    return tokens
+
+def courier_char_width_mm(fs):
+    """Ancho de un carácter Courier en mm para un font size dado."""
+    return fs * 0.6 * 0.3528
+
 def generar_pdf(cancion, semitonos, t_destino, es_menor):
     """
-    PDF con acordes ENCIMA de la letra (estilo partitura).
-    Ambas líneas usan Courier del mismo tamaño para alineación 1:1.
+    PDF con acordes posicionados exactamente sobre la sílaba correcta.
+    Cada acorde se coloca con set_xy() basándose en su columna original.
     """
-    FS = 9          # font size único para acordes y letra
-    LH_A = 4.5     # line height acordes
-    LH_L = 5.5     # line height letra
+    FS   = 8.5
+    LH_A = 4.0
+    LH_L = 5.5
+    CW   = courier_char_width_mm(FS)
+    LMARGIN = 12
 
     pdf = FPDF()
-    pdf.set_margins(12, 12, 12)
+    pdf.set_margins(LMARGIN, 12, 12)
     pdf.set_auto_page_break(auto=True, margin=12)
     pdf.add_page()
 
-    # Cabecera
+    # ── Cabecera ──────────────────────────────────────
     pdf.set_font('Helvetica', 'B', 13)
     pdf.set_text_color(160, 110, 20)
-    pdf.multi_cell(0, 8, limpiar_pdf(cancion['titulo']), align='L',
+    pdf.multi_cell(0, 8, limpiar_letra(cancion['titulo']), align='L',
                    new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     pdf.set_font('Helvetica', '', 8)
     pdf.set_text_color(110, 110, 130)
     sfx = 'm' if es_menor else ''
+    tono_orig = limpiar_chars(cancion['tono'] or '?')
     pdf.cell(0, 5,
-             f"Tono original: {limpiar_pdf(cancion['tono'] or '?')}   ->   Transpuesto a: {t_destino}{sfx}",
+             f"Tono original: {tono_orig}   ->   Transpuesto a: {t_destino}{sfx}",
              new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.ln(2)
     pdf.set_draw_color(180, 160, 100)
-    pdf.line(12, pdf.get_y(), 198, pdf.get_y())
+    pdf.line(LMARGIN, pdf.get_y(), 198, pdf.get_y())
     pdf.ln(5)
 
+    # ── Versos ────────────────────────────────────────
     versos = cancion['versos']
     i = 0
     while i < len(versos):
-        v = versos[i]
+        v  = versos[i]
         tu = v['texto'].strip().upper()
 
-        if any(tu.startswith(e.upper()) for e in ['INTRO','CORO','PUENTE','ESTROFA','FINAL']) and i > 0:
+        if any(tu.startswith(e.upper())
+               for e in ['INTRO','CORO','PUENTE','ESTROFA','FINAL']) and i > 0:
             pdf.ln(4)
 
         if v['tipo'] == 'acordes' and (i+1 < len(versos)) and versos[i+1]['tipo'] == 'letra':
-            # — Acorde encima, letra abajo, misma fuente Courier FS pt —
-            acorde_txt = limpiar_pdf(transponer_linea(v['texto'], semitonos))
-            letra_txt  = limpiar_pdf(versos[i+1]['texto'])
+            # ── Acorde posicionado + letra ─────────────
+            acorde_t = limpiar_chars(transponer_linea(v['texto'], semitonos))
+            letra_t  = limpiar_letra(versos[i+1]['texto'])
 
+            y_acorde = pdf.get_y()
+
+            # Colocar cada acorde en su posición X exacta
             pdf.set_font('Courier', 'B', FS)
             pdf.set_text_color(160, 110, 20)
-            pdf.multi_cell(0, LH_A, acorde_txt, align='L',
-                           new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            for col, acorde in extraer_acordes_con_pos(acorde_t):
+                x = LMARGIN + col * CW
+                x = min(x, pdf.w - pdf.r_margin - 12)
+                pdf.set_xy(x, y_acorde)
+                pdf.cell(30, LH_A, acorde)
 
+            # Letra en la línea siguiente
+            pdf.set_xy(LMARGIN, y_acorde + LH_A)
             pdf.set_font('Courier', '', FS)
             pdf.set_text_color(30, 30, 30)
-            pdf.multi_cell(0, LH_L, letra_txt, align='L',
+            pdf.multi_cell(0, LH_L, letra_t, align='L',
                            new_x=XPos.LMARGIN, new_y=YPos.NEXT)
             i += 2
 
         elif v['tipo'] == 'acordes':
-            acorde_txt = limpiar_pdf(transponer_linea(v['texto'], semitonos))
+            # Acorde suelto sin letra
+            acorde_t = limpiar_chars(transponer_linea(v['texto'], semitonos))
+            y_acorde = pdf.get_y()
             pdf.set_font('Courier', 'B', FS)
             pdf.set_text_color(160, 110, 20)
-            pdf.multi_cell(0, LH_A, acorde_txt, align='L',
-                           new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            for col, acorde in extraer_acordes_con_pos(acorde_t):
+                x = LMARGIN + col * CW
+                x = min(x, pdf.w - pdf.r_margin - 12)
+                pdf.set_xy(x, y_acorde)
+                pdf.cell(30, LH_A, acorde)
+            pdf.set_xy(LMARGIN, y_acorde + LH_A)
+            pdf.ln(0)
             i += 1
 
         else:
-            letra_txt = limpiar_pdf(v['texto'])
+            # Letra sola
+            letra_t = limpiar_letra(v['texto'])
             pdf.set_font('Courier', '', FS)
             pdf.set_text_color(30, 30, 30)
-            pdf.multi_cell(0, LH_L, letra_txt, align='L',
+            pdf.multi_cell(0, LH_L, letra_t, align='L',
                            new_x=XPos.LMARGIN, new_y=YPos.NEXT)
             i += 1
 
@@ -272,7 +317,6 @@ CSS_OSCURO = """
     --green     : #4caf7d;
     --red       : #e07b5a;
 """
-
 CSS_CLARO = """
     --bg        : #f5f2eb;
     --surf      : #ffffff;
@@ -290,15 +334,17 @@ CSS_CLARO = """
     --red       : #c04020;
 """
 
-def get_css(tema='oscuro', modo_pres=False):
+def get_css(tema='oscuro', modo_pres=False, sidebar_visible=True):
     vars_tema = CSS_CLARO if tema == 'claro' else CSS_OSCURO
-
     pres_hide = """
     .sb-header, .stat-row, .stDownloadButton,
     [data-testid="stBottom"] { display:none !important; }
     .canto-wrap { border:none !important; padding:0 !important;
                   background:transparent !important; }
     """ if modo_pres else ""
+    sidebar_hide = """
+    [data-testid="stSidebar"] { display:none !important; }
+    """ if not sidebar_visible else ""
 
     return f"""
 <style>
@@ -315,7 +361,6 @@ html, body {{ background: var(--bg) !important; color: var(--text) !important; }
     border-right: 1px solid var(--border) !important;
 }}
 [data-testid="stSidebar"] * {{ color: var(--text) !important; }}
-/* inputs */
 .stTextInput input, .stNumberInput input {{
     background: var(--surf2) !important; border: 1px solid var(--border) !important;
     border-radius: 6px !important; color: var(--text) !important;
@@ -337,7 +382,6 @@ html, body {{ background: var(--bg) !important; color: var(--text) !important; }
 .stSlider [data-baseweb="slider"] [role="slider"] {{
     background: var(--accent) !important; border-color: var(--accent) !important;
 }}
-/* botones */
 .stButton > button {{
     background: var(--surf2) !important; border: 1px solid var(--border) !important;
     color: var(--text) !important; border-radius: 6px !important;
@@ -353,7 +397,6 @@ html, body {{ background: var(--bg) !important; color: var(--text) !important; }
     font-family: var(--mono) !important; font-size: .79rem !important;
 }}
 hr {{ border-color: var(--border) !important; margin: 6px 0 !important; }}
-/* header */
 .sb-header {{
     display: flex; align-items: baseline; gap: 14px;
     border-bottom: 1px solid var(--border);
@@ -367,7 +410,6 @@ hr {{ border-color: var(--border) !important; margin: 6px 0 !important; }}
     font-family: var(--mono); font-size: .68rem; color: var(--muted);
     letter-spacing: .14em; text-transform: uppercase;
 }}
-/* stats */
 .stat-row {{ display: flex; gap: 9px; margin: 5px 0 16px; flex-wrap: wrap; }}
 .stat-badge {{
     padding: 3px 10px; border-radius: 4px; background: var(--surf2);
@@ -375,17 +417,14 @@ hr {{ border-color: var(--border) !important; margin: 6px 0 !important; }}
     font-size: .68rem; color: var(--muted); letter-spacing: .05em;
 }}
 .stat-badge b {{ color: var(--accent); }}
-/* tono pill */
 .tono-pill {{
     display: inline-block; padding: 2px 10px; border-radius: 20px;
     background: var(--cbg); border: 1px solid var(--accdim);
     color: var(--cfg); font-family: var(--mono); font-size: .8rem;
 }}
 .tono-m {{ border-color: #4a6a9a !important; color: #6a98c8 !important; }}
-/* transposición */
 .tr-up   {{ color: var(--green); font-family: var(--mono); font-size: .77rem; margin: 3px 0; }}
 .tr-down {{ color: var(--red);   font-family: var(--mono); font-size: .77rem; margin: 3px 0; }}
-/* canto */
 .canto-wrap {{
     background: var(--surf); border: 1px solid var(--border); border-radius: 10px;
     padding: 24px 28px 34px; margin-top: 14px;
@@ -406,6 +445,7 @@ hr {{ border-color: var(--border) !important; margin: 6px 0 !important; }}
 }}
 .par-sep {{ height: 14px; break-inside: avoid-column; }}
 {pres_hide}
+{sidebar_hide}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -422,9 +462,10 @@ st.set_page_config(
     initial_sidebar_state='expanded'
 )
 
-# Session state
+# Session state — clave: 'seleccion' NO cambia al cambiar otros controles
 for k, v in [('favoritos', set()), ('seleccion', None),
-             ('presentacion', False), ('tema', 'oscuro')]:
+             ('presentacion', False), ('tema', 'oscuro'),
+             ('sidebar_visible', True)]:
     if k not in st.session_state:
         st.session_state[k] = v
 
@@ -445,13 +486,13 @@ tonos_disponibles = sorted(
 with st.sidebar:
     st.markdown(
         '<div style="font-family:\'EB Garamond\',serif;font-size:1.25rem;'
-        'color:var(--accent,#d4a843);border-bottom:1px solid #2a2a35;'
+        'color:var(--accent,#c49b30);border-bottom:1px solid #2a2a35;'
         'padding-bottom:9px;margin-bottom:12px;">📖 Índice</div>',
         unsafe_allow_html=True
     )
     busq_sb   = st.text_input('🔍', placeholder='buscar canto…',
                                label_visibility='collapsed', key='sb_busq')
-    solo_favs = st.checkbox('⭐ Solo favoritos')
+    solo_favs = st.checkbox('⭐ Solo favoritos', key='sb_favs')
     tono_sb   = st.selectbox('Tono', ['Todos'] + tonos_disponibles, key='sb_tono')
 
     lista_sb = canciones
@@ -475,7 +516,9 @@ with st.sidebar:
 
 # ── CSS ───────────────────────────────────────────────────────────────
 st.markdown(
-    get_css(st.session_state.tema, st.session_state.presentacion),
+    get_css(st.session_state.tema,
+            st.session_state.presentacion,
+            st.session_state.sidebar_visible),
     unsafe_allow_html=True
 )
 
@@ -497,22 +540,29 @@ st.markdown(
 )
 
 # ── SELECTOR + FAVORITO ───────────────────────────────────────────────
-col_sel, col_fav = st.columns([5, 1])
 titulos = [c['titulo'] for c in canciones]
 
-with col_sel:
-    idx_def = 0
-    if st.session_state.seleccion and st.session_state.seleccion in titulos:
-        idx_def = titulos.index(st.session_state.seleccion)
-    seleccion = st.selectbox('Canto', titulos, index=idx_def,
-                             label_visibility='collapsed', key='sel_principal')
-    if seleccion != st.session_state.seleccion:
-        st.session_state.seleccion = seleccion
+# FIX COLUMNAS: guardamos seleccion en session_state y usamos on_change
+# para que cambiar otros widgets NO resetee el canto seleccionado
+def on_select_change():
+    st.session_state.seleccion = st.session_state.sel_widget
 
-cancion  = next(c for c in canciones if c['titulo'] == seleccion)
+idx_def = 0
+if st.session_state.seleccion and st.session_state.seleccion in titulos:
+    idx_def = titulos.index(st.session_state.seleccion)
+
+col_sel, col_fav = st.columns([5, 1])
+with col_sel:
+    st.selectbox('Canto', titulos, index=idx_def,
+                 label_visibility='collapsed',
+                 key='sel_widget',
+                 on_change=on_select_change)
+
+seleccion = st.session_state.seleccion or titulos[0]
+cancion   = next(c for c in canciones if c['titulo'] == seleccion)
 t_base, es_menor = obtener_tono_base(cancion['tono'])
-idx_base = ESCALA.index(t_base) if t_base in ESCALA else 0
-es_fav   = seleccion in st.session_state.favoritos
+idx_base  = ESCALA.index(t_base) if t_base in ESCALA else 0
+es_fav    = seleccion in st.session_state.favoritos
 
 with col_fav:
     if st.button('⭐ Quitar' if es_fav else '☆ Guardar',
@@ -523,8 +573,8 @@ with col_fav:
             st.session_state.favoritos.add(seleccion)
         st.rerun()
 
-# ── CONTROLES (una fila, 7 columnas) ─────────────────────────────────
-c1, c2, c3, c4, c5, c6, c7 = st.columns([1.2, 1.4, 1, 1, 1, 1, 1])
+# ── CONTROLES ─────────────────────────────────────────────────────────
+c1, c2, c3, c4, c5, c6, c7, c8 = st.columns([1.2, 1.4, 1, 1, 1, 1, 1, 1])
 
 with c1:
     mc = 'tono-m' if es_menor else ''
@@ -542,26 +592,32 @@ with c2:
 
 with c3:
     if modo_t == 'Tono destino':
-        t_dest    = st.selectbox('T', ESCALA, index=idx_base, label_visibility='collapsed')
+        t_dest    = st.selectbox('T', ESCALA, index=idx_base, label_visibility='collapsed', key='sel_tono')
         semitonos = (ESCALA.index(t_dest) - idx_base) % 12
     else:
-        semitonos = int(st.number_input('S', -12, 12, 0, label_visibility='collapsed'))
+        semitonos = int(st.number_input('S', -12, 12, 0, label_visibility='collapsed', key='num_semi'))
         t_dest    = ESCALA[(idx_base + semitonos) % 12]
 
 with c4:
-    tamano = st.slider('F', 13, 42, 18, label_visibility='collapsed')
+    tamano = st.slider('F', 13, 42, 18, label_visibility='collapsed', key='slider_font')
 
 with c5:
     cols_v = st.radio('Vista', ['1 columna', '2 columnas'],
-                      horizontal=True, label_visibility='collapsed', key='cols_v')
+                      horizontal=True, label_visibility='collapsed', key='radio_cols')
 
 with c6:
+    sb_label = '◀ Ocultar' if st.session_state.sidebar_visible else '▶ Índice'
+    if st.button(sb_label, use_container_width=True, key='btn_sb'):
+        st.session_state.sidebar_visible = not st.session_state.sidebar_visible
+        st.rerun()
+
+with c7:
     if st.button('🎬 Salir' if st.session_state.presentacion else '🎬 Presentar',
                  use_container_width=True, key='btn_pres'):
         st.session_state.presentacion = not st.session_state.presentacion
         st.rerun()
 
-with c7:
+with c8:
     tema_label = '☀️ Claro' if st.session_state.tema == 'oscuro' else '🌙 Oscuro'
     if st.button(tema_label, use_container_width=True, key='btn_tema'):
         st.session_state.tema = 'claro' if st.session_state.tema == 'oscuro' else 'oscuro'
@@ -581,7 +637,8 @@ if delta != 0:
     )
 
 # ── EXPORT PDF ────────────────────────────────────────────────────────
-sfx_pdf  = 'm' if es_menor else ''
+sfx_pdf   = 'm' if es_menor else ''
+# semitonos y t_dest ya están calculados arriba con el tono correcto
 pdf_bytes = generar_pdf(cancion, semitonos, t_dest, es_menor)
 nombre_f  = re.sub(r'[^\w\s-]', '', cancion['titulo'])[:38].strip().replace(' ', '_')
 st.download_button(
@@ -612,10 +669,8 @@ while i < len(versos):
     tu      = v['texto'].strip().upper()
     es_secc = any(tu.startswith(e.upper())
                   for e in ['INTRO','CORO','PUENTE','ESTROFA','FINAL'])
-
     if es_secc and i > 0:
         html += '<div class="par-sep"></div>'
-
     if v['tipo'] == 'acordes' and (i+1 < len(versos)) and versos[i+1]['tipo'] == 'letra':
         html += '<div class="par">'
         html += render_acordes(v['texto'], semitonos)
