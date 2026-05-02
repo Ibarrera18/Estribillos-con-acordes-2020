@@ -623,12 +623,15 @@ def get_css(tema='oscuro'):
 :root {{{v}
     --mono  : 'JetBrains Mono','Fira Code','Consolas',monospace;
     --serif : 'EB Garamond',Georgia,serif;
-    --r4    : 4px;
-    --r8    : 8px;
-    --r12   : 12px;
+    --r4    : 4px; --r8: 8px; --r12: 12px;
+    --fs-xs : clamp(.6rem,  1.4vw, .72rem);
+    --fs-sm : clamp(.72rem, 1.6vw, .84rem);
+    --fs-md : clamp(.84rem, 1.8vw, 1rem);
+    --fs-lg : clamp(1.1rem, 2.4vw, 1.4rem);
+    --fs-xl : clamp(1.4rem, 3vw,   1.9rem);
 }}
 
-/* ── Reset & base ──────────────────────────────────────── */
+/* ── Reset & base ───────────────────────────────────────── */
 *, *::before, *::after {{ box-sizing: border-box; }}
 .stApp, [data-testid="stAppViewContainer"], html, body {{
     background: var(--bg) !important;
@@ -636,44 +639,51 @@ def get_css(tema='oscuro'):
 }}
 #MainMenu, footer, header {{ visibility: hidden; }}
 [data-testid="stToolbar"], [data-testid="stSidebar"] {{ display: none !important; }}
-[data-testid="stMainBlockContainer"] {{ padding-top: 2rem !important; }}
+[data-testid="stMainBlockContainer"] {{
+    padding-top: 1.5rem !important;
+    padding-left: clamp(1rem, 4vw, 3rem) !important;
+    padding-right: clamp(1rem, 4vw, 3rem) !important;
+}}
 
-/* ── Scrollbar ─────────────────────────────────────────── */
+/* ── Scrollbar ──────────────────────────────────────────── */
 ::-webkit-scrollbar {{ width: 4px; height: 4px; }}
 ::-webkit-scrollbar-track {{ background: transparent; }}
 ::-webkit-scrollbar-thumb {{ background: var(--border2); border-radius: 2px; }}
 
-/* ── Streamlit tab overrides ───────────────────────────── */
+/* ── Streamlit tabs ─────────────────────────────────────── */
 [data-baseweb="tab-list"] {{
     background: transparent !important;
     border-bottom: 1px solid var(--border) !important;
     gap: 0 !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
 }}
 [data-baseweb="tab"] {{
     background: transparent !important;
     color: var(--text2) !important;
     font-family: var(--mono) !important;
-    font-size: .78rem !important;
+    font-size: var(--fs-xs) !important;
     letter-spacing: .06em !important;
-    padding: 10px 20px !important;
+    padding: 10px clamp(12px, 2.5vw, 20px) !important;
     border-bottom: 2px solid transparent !important;
     transition: color .15s !important;
+    white-space: nowrap !important;
 }}
 [data-baseweb="tab"]:hover {{ color: var(--text) !important; }}
 [aria-selected="true"][data-baseweb="tab"] {{
     color: var(--accent2) !important;
     border-bottom-color: var(--accent) !important;
 }}
-[data-testid="stTabPanel"] {{ padding-top: 1.5rem !important; }}
+[data-testid="stTabPanel"] {{ padding-top: 1.2rem !important; }}
 
-/* ── Inputs ────────────────────────────────────────────── */
+/* ── Inputs ─────────────────────────────────────────────── */
 .stTextInput input, .stNumberInput input {{
     background: var(--surf2) !important;
     border: 1px solid var(--border) !important;
     border-radius: var(--r8) !important;
     color: var(--text) !important;
     font-family: var(--mono) !important;
-    font-size: .84rem !important;
+    font-size: var(--fs-sm) !important;
     padding: 8px 12px !important;
     transition: border-color .15s !important;
 }}
@@ -688,36 +698,30 @@ def get_css(tema='oscuro'):
     border-radius: var(--r8) !important;
     color: var(--text) !important;
     font-family: var(--mono) !important;
-    font-size: .84rem !important;
+    font-size: var(--fs-sm) !important;
     transition: border-color .15s !important;
 }}
-.stSelectbox > div > div:focus-within {{
-    border-color: var(--accent) !important;
-}}
+.stSelectbox > div > div:focus-within {{ border-color: var(--accent) !important; }}
 
-/* ── Labels ────────────────────────────────────────────── */
+/* ── Labels ─────────────────────────────────────────────── */
 .stSelectbox label, .stTextInput label, .stSlider label,
 .stRadio label, .stNumberInput label, .stCheckbox label {{
     color: var(--text2) !important;
     font-family: var(--mono) !important;
-    font-size: .72rem !important;
+    font-size: var(--fs-xs) !important;
     letter-spacing: .05em !important;
     text-transform: uppercase !important;
 }}
-
-/* ── Radio ─────────────────────────────────────────────── */
-[data-baseweb="radio"] {{
-    gap: 6px !important;
-}}
+[data-baseweb="radio"] {{ gap: 6px !important; }}
 [data-baseweb="radio"] label {{
     color: var(--text2) !important;
     font-family: var(--mono) !important;
-    font-size: .78rem !important;
+    font-size: var(--fs-sm) !important;
     text-transform: none !important;
     letter-spacing: 0 !important;
 }}
 
-/* ── Slider ────────────────────────────────────────────── */
+/* ── Slider ─────────────────────────────────────────────── */
 .stSlider [data-baseweb="slider"] > div > div > div:first-child {{
     background: var(--border2) !important;
 }}
@@ -727,25 +731,25 @@ def get_css(tema='oscuro'):
     box-shadow: 0 0 0 3px rgba(200,152,58,.15) !important;
 }}
 
-/* ── Buttons ───────────────────────────────────────────── */
+/* ── Buttons ─────────────────────────────────────────────── */
 .stButton > button {{
     background: var(--surf2) !important;
     border: 1px solid var(--border) !important;
     color: var(--text2) !important;
     border-radius: var(--r8) !important;
     font-family: var(--mono) !important;
-    font-size: .78rem !important;
+    font-size: var(--fs-xs) !important;
     padding: 6px 14px !important;
     transition: all .15s !important;
     letter-spacing: .02em !important;
+    white-space: nowrap !important;
 }}
 .stButton > button:hover {{
     border-color: var(--accent) !important;
     color: var(--text) !important;
     background: var(--surf) !important;
 }}
-.stButton > button[kind="primary"],
-.stButton > button[data-testid*="primary"] {{
+.stButton > button[kind="primary"] {{
     background: var(--accent) !important;
     border-color: var(--accent) !important;
     color: #0c0c0e !important;
@@ -760,111 +764,54 @@ def get_css(tema='oscuro'):
     color: var(--cfg) !important;
     border-radius: var(--r8) !important;
     font-family: var(--mono) !important;
-    font-size: .78rem !important;
+    font-size: var(--fs-xs) !important;
 }}
-.stDownloadButton > button:hover {{
-    border-color: var(--accent) !important;
-}}
+.stDownloadButton > button:hover {{ border-color: var(--accent) !important; }}
 
-/* ── Divider ───────────────────────────────────────────── */
 hr {{ border: none !important; border-top: 1px solid var(--border) !important; margin: 20px 0 !important; }}
-
-/* ── Info / Alert ──────────────────────────────────────── */
 .stAlert {{ border-radius: var(--r8) !important; }}
 
 /* ══════════════════════════════════════════════════════════
-   COMPONENTES CUSTOM
+   COMPONENTES CUSTOM — RESPONSIVE
    ══════════════════════════════════════════════════════════ */
 
-/* ── App header ────────────────────────────────────────── */
-.app-header {{
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    padding-bottom: 20px;
-    margin-bottom: 8px;
-    border-bottom: 1px solid var(--border);
-}}
+/* ── App header ─────────────────────────────────────────── */
 .app-header-left h1 {{
     font-family: var(--serif);
-    font-size: 1.9rem;
+    font-size: var(--fs-xl);
     font-weight: 400;
     color: var(--accent2);
     letter-spacing: .02em;
     margin: 0;
-    line-height: 1;
+    line-height: 1.1;
 }}
 .app-header-left span {{
     font-family: var(--mono);
-    font-size: .65rem;
+    font-size: var(--fs-xs);
     color: var(--muted);
     letter-spacing: .18em;
     text-transform: uppercase;
     display: block;
-    margin-top: 4px;
+    margin-top: 5px;
 }}
-.app-header-right {{
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    flex-wrap: wrap;
-}}
-.header-chip {{
-    font-family: var(--mono);
-    font-size: .65rem;
-    color: var(--text2);
-    background: var(--surf2);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 3px 10px;
-    letter-spacing: .05em;
-}}
-.header-chip b {{ color: var(--accent2); }}
 
-/* ── Tono pill ─────────────────────────────────────────── */
+/* ── Tono pill ──────────────────────────────────────────── */
 .tono-pill {{
     display: inline-flex;
     align-items: center;
-    gap: 4px;
     padding: 3px 10px;
     border-radius: 20px;
     background: var(--cbg);
     border: 1px solid var(--border2);
     color: var(--cfg);
     font-family: var(--mono);
-    font-size: .78rem;
+    font-size: var(--fs-xs);
     font-weight: 600;
+    white-space: nowrap;
 }}
 .tono-m {{ border-color: #3a5a8a !important; color: #6a9cce !important; }}
 
-/* ── Control bar ───────────────────────────────────────── */
-.ctrl-bar {{
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 10px 14px;
-    background: var(--surf);
-    border: 1px solid var(--border);
-    border-radius: var(--r12);
-    margin-bottom: 14px;
-    flex-wrap: wrap;
-}}
-.ctrl-label {{
-    font-family: var(--mono);
-    font-size: .62rem;
-    color: var(--muted);
-    letter-spacing: .1em;
-    text-transform: uppercase;
-    margin-right: 2px;
-}}
-.ctrl-sep {{
-    width: 1px; height: 20px;
-    background: var(--border);
-    margin: 0 4px;
-    flex-shrink: 0;
-}}
-
-/* ── Transposition indicator ───────────────────────────── */
+/* ── Transposition badge ────────────────────────────────── */
 .transp-badge {{
     display: inline-flex;
     align-items: center;
@@ -872,35 +819,47 @@ hr {{ border: none !important; border-top: 1px solid var(--border) !important; m
     padding: 4px 12px;
     border-radius: 20px;
     font-family: var(--mono);
-    font-size: .75rem;
+    font-size: var(--fs-xs);
     margin-bottom: 12px;
 }}
 .transp-up   {{ background: rgba(58,158,106,.1); border: 1px solid rgba(58,158,106,.3); color: var(--green); }}
 .transp-down {{ background: rgba(200,104,72,.1); border: 1px solid rgba(200,104,72,.3); color: var(--red); }}
-.transp-zero {{ display: none; }}
 
-/* ── Canto wrap ────────────────────────────────────────── */
+/* ── Canto wrap ─────────────────────────────────────────── */
 .canto-wrap {{
     background: var(--surf);
     border: 1px solid var(--border);
     border-radius: var(--r12);
-    padding: 28px 32px 40px;
+    padding: clamp(16px, 4vw, 32px) clamp(16px, 5vw, 36px) clamp(24px, 5vw, 44px);
     margin-top: 8px;
-}}
-@media (max-width: 600px) {{
-    .canto-wrap {{ padding: 18px 16px 32px; }}
 }}
 .canto-titulo {{
     font-family: var(--serif);
-    font-size: 1.4rem;
+    font-size: var(--fs-lg);
     font-weight: 400;
     color: var(--accent2);
-    margin-bottom: 20px;
+    margin-bottom: clamp(14px, 3vw, 22px);
     letter-spacing: .02em;
     border-bottom: 1px solid var(--border);
-    padding-bottom: 12px;
+    padding-bottom: clamp(10px, 2vw, 14px);
     line-height: 1.3;
 }}
+
+/* ── Canto body — font adaptivo ─────────────────────────── */
+.canto-body {{
+    font-family: 'JetBrains Mono','Fira Code','Consolas',monospace;
+    font-size: clamp(13px, 2.8vw, 20px);
+    line-height: 1.7;
+}}
+/* Tablet */
+@media (min-width: 481px) and (max-width: 900px) {{
+    .canto-body {{ font-size: clamp(13px, 2.2vw, 17px); }}
+}}
+/* Desktop */
+@media (min-width: 901px) {{
+    .canto-body {{ font-size: clamp(14px, 1.4vw, 20px); }}
+}}
+
 .acorde {{
     color: var(--cfg);
     font-weight: 700;
@@ -908,72 +867,47 @@ hr {{ border: none !important; border-top: 1px solid var(--border) !important; m
     border-radius: 3px;
     padding: 0 3px;
 }}
-.etiqueta {{
-    color: var(--lblfg);
-    font-weight: 700;
-    font-size: .9em;
-    letter-spacing: .06em;
-}}
+.etiqueta {{ color: var(--lblfg); font-weight: 700; font-size: .9em; letter-spacing: .06em; }}
 .par {{ break-inside: avoid-column; page-break-inside: avoid; display: block; margin-bottom: 2px; }}
 .par-sep {{ height: 16px; break-inside: avoid-column; }}
 
-/* ── Setlist items ─────────────────────────────────────── */
-.sl-row {{
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
-    background: var(--surf);
-    border: 1px solid var(--border);
-    border-radius: var(--r8);
-    margin-bottom: 6px;
-    transition: border-color .15s;
+/* ── 2 columnas: solo en pantallas >= 700px ─────────────── */
+.cols-2 {{
+    column-count: 2;
+    column-gap: clamp(24px, 5vw, 56px);
 }}
-.sl-row:hover {{ border-color: var(--border2); }}
-.sl-num {{
-    font-family: var(--mono);
-    font-size: .65rem;
-    color: var(--muted);
-    min-width: 18px;
-    text-align: right;
-}}
-.sl-titulo {{
-    flex: 1;
-    font-family: var(--mono);
-    font-size: .8rem;
-    color: var(--text);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}}
-.sl-tono {{
-    font-family: var(--mono);
-    font-size: .65rem;
-    color: var(--cfg);
-    background: var(--cbg);
-    border: 1px solid var(--border2);
-    border-radius: 10px;
-    padding: 2px 8px;
+@media (max-width: 700px) {{
+    .cols-2 {{ column-count: 1 !important; }}
 }}
 
-/* ── Empty state ───────────────────────────────────────── */
+/* ── Setlist ────────────────────────────────────────────── */
 .empty-state {{
     text-align: center;
-    padding: 64px 24px;
+    padding: clamp(32px, 8vw, 64px) 24px;
     color: var(--text2);
 }}
-.empty-icon {{ font-size: 2.5rem; margin-bottom: 16px; opacity: .5; }}
+.empty-icon {{ font-size: clamp(1.8rem, 5vw, 2.5rem); margin-bottom: 16px; opacity: .5; }}
 .empty-title {{
     font-family: var(--serif);
-    font-size: 1.3rem;
+    font-size: var(--fs-lg);
     color: var(--text2);
     margin-bottom: 8px;
 }}
 .empty-sub {{
     font-family: var(--mono);
-    font-size: .75rem;
+    font-size: var(--fs-xs);
     color: var(--muted);
     line-height: 1.7;
+}}
+
+/* ── Responsive: controles en móvil ────────────────────── */
+@media (max-width: 480px) {{
+    [data-testid="stMainBlockContainer"] {{
+        padding-left: .75rem !important;
+        padding-right: .75rem !important;
+    }}
+    .stButton > button {{ font-size: .72rem !important; padding: 7px 10px !important; }}
+    [data-baseweb="tab"] {{ padding: 8px 12px !important; }}
 }}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1490,7 +1424,7 @@ with tab1:
     ya_en_sl  = any(x['titulo'] == seleccion for x in st.session_state.setlist)
 
     # ── Barra de controles ────────────────────────────────────────
-    cc1, cc2, cc3, cc4, cc5 = st.columns([1.4, 1.2, 1, 1, 1.2])
+    cc1, cc2, cc3, cc4 = st.columns([1.6, 1.4, 1, 1.4])
 
     with cc1:
         modo_t = st.radio('Transponer', ['Por tono', 'Por capo'],
@@ -1503,10 +1437,10 @@ with tab1:
             semitonos = int(st.number_input('Capo (semitonos)', -12, 12, 0, key='num_semi'))
             t_dest    = ESCALA[(idx_base + semitonos) % 12]
     with cc3:
-        tamano = st.slider('Tamaño fuente', 13, 42, 18, key='slider_font')
+        pass  # tamaño adaptativo via CSS clamp()
     with cc4:
         cols_v = st.radio('Columnas', ['1', '2'], horizontal=True, key='radio_cols')
-    with cc5:
+    with cc4:
         mc  = 'tono-m' if es_menor else ''
         sfx = 'm' if es_menor else ''
         st.markdown(
@@ -1517,6 +1451,11 @@ with tab1:
             f'</div>',
             unsafe_allow_html=True
         )
+
+    # ── Columnas (radio visible solo en desktop via CSS) ──────────
+    cols_v = st.radio('Columnas al imprimir', ['1', '2'],
+                      horizontal=True, key='radio_cols',
+                      help='En móvil siempre 1 columna')
 
     # ── Indicador de transposición ────────────────────────────────
     delta = semitonos if semitonos <= 6 else semitonos - 12
@@ -1567,14 +1506,12 @@ with tab1:
     st.divider()
 
     # ── Render del canto ──────────────────────────────────────────
-    num_cols  = 2 if cols_v == '2' else 1
-    col_style = f'column-count:{num_cols};column-gap:56px;' if num_cols > 1 else ''
+    cols_class = 'cols-2' if cols_v == '2' else ''
 
     html = (
         f'<div class="canto-wrap">'
         f'<div class="canto-titulo">{cancion["titulo"]}</div>'
-        f'<div style="font-family:\'JetBrains Mono\',\'Consolas\',monospace;'
-        f'font-size:{tamano}px;line-height:1.7;{col_style}">'
+        f'<div class="canto-body {cols_class}">'
     )
     versos = cancion['versos']
     i = 0
