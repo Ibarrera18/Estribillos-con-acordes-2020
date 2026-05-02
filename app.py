@@ -573,46 +573,49 @@ loadFavs();
     return result
 
 
+
 # ─────────────────────────────────────────────────────────────────────
-#  CSS
+#  DESIGN TOKENS
 # ─────────────────────────────────────────────────────────────────────
 CSS_OSCURO = """
-    --bg        : #0d0d0f;
-    --surf      : #141418;
-    --surf2     : #1c1c22;
-    --surf3     : #0f0f13;
-    --border    : #2a2a35;
-    --accent    : #c49b30;
-    --accdim    : #5e4718;
-    --text      : #e8e4d8;
-    --muted     : #54525f;
-    --cbg       : #1e1808;
-    --cfg       : #f0c060;
-    --lblfg     : #7cb4f0;
-    --green     : #4caf7d;
-    --red       : #e07b5a;
+    --bg        : #0c0c0e;
+    --surf      : #111116;
+    --surf2     : #18181f;
+    --surf3     : #0a0a0d;
+    --border    : #222230;
+    --border2   : #2e2e3e;
+    --accent    : #c8983a;
+    --accent2   : #e8b84a;
+    --accdim    : #3a2808;
+    --text      : #e6e2d8;
+    --text2     : #9e9aaa;
+    --muted     : #48465a;
+    --cbg       : #1a1405;
+    --cfg       : #eab84a;
+    --lblfg     : #6aace8;
+    --green     : #3a9e6a;
+    --red       : #c86848;
 """
 CSS_CLARO = """
-    --bg        : #f5f2eb;
+    --bg        : #faf8f4;
     --surf      : #ffffff;
-    --surf2     : #eeeae0;
-    --surf3     : #f0ece2;
-    --border    : #d4cdb8;
-    --accent    : #8a6010;
-    --accdim    : #c8a84b;
+    --surf2     : #f2efe8;
+    --surf3     : #f5f2ea;
+    --border    : #e0d8c8;
+    --border2   : #ccc4b0;
+    --accent    : #7a5010;
+    --accent2   : #9a6820;
+    --accdim    : #e8d8a0;
     --text      : #1a1810;
-    --muted     : #7a7060;
-    --cbg       : #fdf3d0;
-    --cfg       : #7a4800;
-    --lblfg     : #1a60b0;
-    --green     : #1a7a40;
-    --red       : #c04020;
+    --text2     : #6a6050;
+    --muted     : #9a9080;
+    --cbg       : #fdf6e0;
+    --cfg       : #6a4000;
+    --lblfg     : #1a5898;
+    --green     : #1a6a40;
+    --red       : #a04020;
 """
 
-
-# ─────────────────────────────────────────────────────────────────────
-#  CSS
-# ─────────────────────────────────────────────────────────────────────
 def get_css(tema='oscuro'):
     v = CSS_CLARO if tema == 'claro' else CSS_OSCURO
     return f"""
@@ -620,88 +623,363 @@ def get_css(tema='oscuro'):
 :root {{{v}
     --mono  : 'JetBrains Mono','Fira Code','Consolas',monospace;
     --serif : 'EB Garamond',Georgia,serif;
+    --r4    : 4px;
+    --r8    : 8px;
+    --r12   : 12px;
 }}
-.stApp,[data-testid="stAppViewContainer"],html,body{{
-    background:var(--bg)!important;color:var(--text)!important;}}
-#MainMenu,footer,header{{visibility:hidden;}}
-[data-testid="stToolbar"]{{display:none;}}
-[data-testid="stSidebar"]{{display:none!important;}}
-.stTextInput input,.stNumberInput input{{
-    background:var(--surf2)!important;border:1px solid var(--border)!important;
-    border-radius:6px!important;color:var(--text)!important;
-    font-family:var(--mono)!important;font-size:.84rem!important;}}
-.stTextInput input:focus,.stNumberInput input:focus{{
-    border-color:var(--accent)!important;
-    box-shadow:0 0 0 2px rgba(140,100,30,.18)!important;}}
-.stSelectbox>div>div{{
-    background:var(--surf2)!important;border:1px solid var(--border)!important;
-    border-radius:6px!important;color:var(--text)!important;
-    font-family:var(--mono)!important;font-size:.82rem!important;}}
-.stSelectbox label,.stTextInput label,.stSlider label,
-.stRadio label,.stNumberInput label{{
-    color:var(--muted)!important;font-size:.76rem!important;}}
-.stSlider [data-baseweb="slider"] [role="slider"]{{
-    background:var(--accent)!important;border-color:var(--accent)!important;}}
-.stButton>button{{
-    background:var(--surf2)!important;border:1px solid var(--border)!important;
-    color:var(--text)!important;border-radius:6px!important;
-    font-family:var(--mono)!important;font-size:.79rem!important;
-    transition:border-color .14s,background .14s;}}
-.stButton>button:hover{{border-color:var(--accent)!important;background:var(--surf)!important;}}
-.stDownloadButton>button{{
-    background:var(--accdim)!important;border:1px solid var(--accent)!important;
-    color:var(--cfg)!important;border-radius:6px!important;
-    font-family:var(--mono)!important;font-size:.79rem!important;}}
-hr{{border-color:var(--border)!important;margin:6px 0!important;}}
-.sb-header{{display:flex;align-items:baseline;gap:14px;
-    border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:18px;}}
-.sb-header h1{{font-family:var(--serif);font-size:2rem;font-weight:400;
-    color:var(--accent);margin:0;letter-spacing:.04em;}}
-.sb-header span{{font-family:var(--mono);font-size:.68rem;color:var(--muted);
-    letter-spacing:.14em;text-transform:uppercase;}}
-.stat-row{{display:flex;gap:9px;margin:5px 0 16px;flex-wrap:wrap;}}
-.stat-badge{{padding:3px 10px;border-radius:4px;background:var(--surf2);
-    border:1px solid var(--border);font-family:var(--mono);
-    font-size:.68rem;color:var(--muted);letter-spacing:.05em;}}
-.stat-badge b{{color:var(--accent);}}
-.tono-pill{{display:inline-block;padding:2px 10px;border-radius:20px;
-    background:var(--cbg);border:1px solid var(--accdim);
-    color:var(--cfg);font-family:var(--mono);font-size:.8rem;}}
-.tono-m{{border-color:#4a6a9a!important;color:#6a98c8!important;}}
-.tr-up{{color:var(--green);font-family:var(--mono);font-size:.77rem;margin:3px 0;}}
-.tr-down{{color:var(--red);font-family:var(--mono);font-size:.77rem;margin:3px 0;}}
-.canto-wrap{{background:var(--surf);border:1px solid var(--border);border-radius:10px;
-    padding:24px 28px 34px;margin-top:14px;}}
-.canto-titulo{{font-family:var(--serif);font-size:1.5rem;font-weight:400;
-    color:var(--accent);margin-bottom:16px;letter-spacing:.02em;
-    border-bottom:1px solid var(--border);padding-bottom:10px;}}
-.acorde{{background:var(--cbg);color:var(--cfg);border-radius:3px;padding:0 3px;font-weight:600;}}
-.etiqueta{{color:var(--lblfg);font-weight:700;}}
-.par{{break-inside:avoid-column;page-break-inside:avoid;display:block;margin-bottom:2px;}}
-.par-sep{{height:14px;break-inside:avoid-column;}}
-/* setlist items */
-.sl-item{{
-    display:flex;align-items:center;gap:10px;
-    padding:8px 12px;border-radius:6px;
-    background:var(--surf2);border:1px solid var(--border);
-    margin-bottom:6px;cursor:grab;transition:border-color .12s;}}
-.sl-item:hover{{border-color:var(--accent);}}
-.sl-item.activo{{border-color:var(--accent);background:var(--cbg);}}
-.sl-num{{font-family:var(--mono);font-size:.68rem;color:var(--muted);
-    min-width:22px;text-align:right;}}
-.sl-titulo{{flex:1;font-family:var(--mono);font-size:.78rem;
-    color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}}
-.sl-tono{{font-size:.65rem;color:var(--cfg);background:var(--cbg);
-    border:1px solid var(--accdim);border-radius:10px;padding:1px 7px;}}
+
+/* ── Reset & base ──────────────────────────────────────── */
+*, *::before, *::after {{ box-sizing: border-box; }}
+.stApp, [data-testid="stAppViewContainer"], html, body {{
+    background: var(--bg) !important;
+    color: var(--text) !important;
+}}
+#MainMenu, footer, header {{ visibility: hidden; }}
+[data-testid="stToolbar"], [data-testid="stSidebar"] {{ display: none !important; }}
+[data-testid="stMainBlockContainer"] {{ padding-top: 2rem !important; }}
+
+/* ── Scrollbar ─────────────────────────────────────────── */
+::-webkit-scrollbar {{ width: 4px; height: 4px; }}
+::-webkit-scrollbar-track {{ background: transparent; }}
+::-webkit-scrollbar-thumb {{ background: var(--border2); border-radius: 2px; }}
+
+/* ── Streamlit tab overrides ───────────────────────────── */
+[data-baseweb="tab-list"] {{
+    background: transparent !important;
+    border-bottom: 1px solid var(--border) !important;
+    gap: 0 !important;
+}}
+[data-baseweb="tab"] {{
+    background: transparent !important;
+    color: var(--text2) !important;
+    font-family: var(--mono) !important;
+    font-size: .78rem !important;
+    letter-spacing: .06em !important;
+    padding: 10px 20px !important;
+    border-bottom: 2px solid transparent !important;
+    transition: color .15s !important;
+}}
+[data-baseweb="tab"]:hover {{ color: var(--text) !important; }}
+[aria-selected="true"][data-baseweb="tab"] {{
+    color: var(--accent2) !important;
+    border-bottom-color: var(--accent) !important;
+}}
+[data-testid="stTabPanel"] {{ padding-top: 1.5rem !important; }}
+
+/* ── Inputs ────────────────────────────────────────────── */
+.stTextInput input, .stNumberInput input {{
+    background: var(--surf2) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--r8) !important;
+    color: var(--text) !important;
+    font-family: var(--mono) !important;
+    font-size: .84rem !important;
+    padding: 8px 12px !important;
+    transition: border-color .15s !important;
+}}
+.stTextInput input:focus, .stNumberInput input:focus {{
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 3px rgba(200,152,58,.12) !important;
+    outline: none !important;
+}}
+.stSelectbox > div > div {{
+    background: var(--surf2) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--r8) !important;
+    color: var(--text) !important;
+    font-family: var(--mono) !important;
+    font-size: .84rem !important;
+    transition: border-color .15s !important;
+}}
+.stSelectbox > div > div:focus-within {{
+    border-color: var(--accent) !important;
+}}
+
+/* ── Labels ────────────────────────────────────────────── */
+.stSelectbox label, .stTextInput label, .stSlider label,
+.stRadio label, .stNumberInput label, .stCheckbox label {{
+    color: var(--text2) !important;
+    font-family: var(--mono) !important;
+    font-size: .72rem !important;
+    letter-spacing: .05em !important;
+    text-transform: uppercase !important;
+}}
+
+/* ── Radio ─────────────────────────────────────────────── */
+[data-baseweb="radio"] {{
+    gap: 6px !important;
+}}
+[data-baseweb="radio"] label {{
+    color: var(--text2) !important;
+    font-family: var(--mono) !important;
+    font-size: .78rem !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+}}
+
+/* ── Slider ────────────────────────────────────────────── */
+.stSlider [data-baseweb="slider"] > div > div > div:first-child {{
+    background: var(--border2) !important;
+}}
+.stSlider [data-baseweb="slider"] [role="slider"] {{
+    background: var(--accent) !important;
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 3px rgba(200,152,58,.15) !important;
+}}
+
+/* ── Buttons ───────────────────────────────────────────── */
+.stButton > button {{
+    background: var(--surf2) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text2) !important;
+    border-radius: var(--r8) !important;
+    font-family: var(--mono) !important;
+    font-size: .78rem !important;
+    padding: 6px 14px !important;
+    transition: all .15s !important;
+    letter-spacing: .02em !important;
+}}
+.stButton > button:hover {{
+    border-color: var(--accent) !important;
+    color: var(--text) !important;
+    background: var(--surf) !important;
+}}
+.stButton > button[kind="primary"],
+.stButton > button[data-testid*="primary"] {{
+    background: var(--accent) !important;
+    border-color: var(--accent) !important;
+    color: #0c0c0e !important;
+}}
+.stButton > button[kind="primary"]:hover {{
+    background: var(--accent2) !important;
+    border-color: var(--accent2) !important;
+}}
+.stDownloadButton > button {{
+    background: var(--accdim) !important;
+    border: 1px solid var(--border2) !important;
+    color: var(--cfg) !important;
+    border-radius: var(--r8) !important;
+    font-family: var(--mono) !important;
+    font-size: .78rem !important;
+}}
+.stDownloadButton > button:hover {{
+    border-color: var(--accent) !important;
+}}
+
+/* ── Divider ───────────────────────────────────────────── */
+hr {{ border: none !important; border-top: 1px solid var(--border) !important; margin: 20px 0 !important; }}
+
+/* ── Info / Alert ──────────────────────────────────────── */
+.stAlert {{ border-radius: var(--r8) !important; }}
+
+/* ══════════════════════════════════════════════════════════
+   COMPONENTES CUSTOM
+   ══════════════════════════════════════════════════════════ */
+
+/* ── App header ────────────────────────────────────────── */
+.app-header {{
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding-bottom: 20px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+}}
+.app-header-left h1 {{
+    font-family: var(--serif);
+    font-size: 1.9rem;
+    font-weight: 400;
+    color: var(--accent2);
+    letter-spacing: .02em;
+    margin: 0;
+    line-height: 1;
+}}
+.app-header-left span {{
+    font-family: var(--mono);
+    font-size: .65rem;
+    color: var(--muted);
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    display: block;
+    margin-top: 4px;
+}}
+.app-header-right {{
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}}
+.header-chip {{
+    font-family: var(--mono);
+    font-size: .65rem;
+    color: var(--text2);
+    background: var(--surf2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 3px 10px;
+    letter-spacing: .05em;
+}}
+.header-chip b {{ color: var(--accent2); }}
+
+/* ── Tono pill ─────────────────────────────────────────── */
+.tono-pill {{
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: var(--cbg);
+    border: 1px solid var(--border2);
+    color: var(--cfg);
+    font-family: var(--mono);
+    font-size: .78rem;
+    font-weight: 600;
+}}
+.tono-m {{ border-color: #3a5a8a !important; color: #6a9cce !important; }}
+
+/* ── Control bar ───────────────────────────────────────── */
+.ctrl-bar {{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 14px;
+    background: var(--surf);
+    border: 1px solid var(--border);
+    border-radius: var(--r12);
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+}}
+.ctrl-label {{
+    font-family: var(--mono);
+    font-size: .62rem;
+    color: var(--muted);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    margin-right: 2px;
+}}
+.ctrl-sep {{
+    width: 1px; height: 20px;
+    background: var(--border);
+    margin: 0 4px;
+    flex-shrink: 0;
+}}
+
+/* ── Transposition indicator ───────────────────────────── */
+.transp-badge {{
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-family: var(--mono);
+    font-size: .75rem;
+    margin-bottom: 12px;
+}}
+.transp-up   {{ background: rgba(58,158,106,.1); border: 1px solid rgba(58,158,106,.3); color: var(--green); }}
+.transp-down {{ background: rgba(200,104,72,.1); border: 1px solid rgba(200,104,72,.3); color: var(--red); }}
+.transp-zero {{ display: none; }}
+
+/* ── Canto wrap ────────────────────────────────────────── */
+.canto-wrap {{
+    background: var(--surf);
+    border: 1px solid var(--border);
+    border-radius: var(--r12);
+    padding: 28px 32px 40px;
+    margin-top: 8px;
+}}
+@media (max-width: 600px) {{
+    .canto-wrap {{ padding: 18px 16px 32px; }}
+}}
+.canto-titulo {{
+    font-family: var(--serif);
+    font-size: 1.4rem;
+    font-weight: 400;
+    color: var(--accent2);
+    margin-bottom: 20px;
+    letter-spacing: .02em;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 12px;
+    line-height: 1.3;
+}}
+.acorde {{
+    color: var(--cfg);
+    font-weight: 700;
+    background: var(--cbg);
+    border-radius: 3px;
+    padding: 0 3px;
+}}
+.etiqueta {{
+    color: var(--lblfg);
+    font-weight: 700;
+    font-size: .9em;
+    letter-spacing: .06em;
+}}
+.par {{ break-inside: avoid-column; page-break-inside: avoid; display: block; margin-bottom: 2px; }}
+.par-sep {{ height: 16px; break-inside: avoid-column; }}
+
+/* ── Setlist items ─────────────────────────────────────── */
+.sl-row {{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--surf);
+    border: 1px solid var(--border);
+    border-radius: var(--r8);
+    margin-bottom: 6px;
+    transition: border-color .15s;
+}}
+.sl-row:hover {{ border-color: var(--border2); }}
+.sl-num {{
+    font-family: var(--mono);
+    font-size: .65rem;
+    color: var(--muted);
+    min-width: 18px;
+    text-align: right;
+}}
+.sl-titulo {{
+    flex: 1;
+    font-family: var(--mono);
+    font-size: .8rem;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}}
+.sl-tono {{
+    font-family: var(--mono);
+    font-size: .65rem;
+    color: var(--cfg);
+    background: var(--cbg);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 2px 8px;
+}}
+
+/* ── Empty state ───────────────────────────────────────── */
+.empty-state {{
+    text-align: center;
+    padding: 64px 24px;
+    color: var(--text2);
+}}
+.empty-icon {{ font-size: 2.5rem; margin-bottom: 16px; opacity: .5; }}
+.empty-title {{
+    font-family: var(--serif);
+    font-size: 1.3rem;
+    color: var(--text2);
+    margin-bottom: 8px;
+}}
+.empty-sub {{
+    font-family: var(--mono);
+    font-size: .75rem;
+    color: var(--muted);
+    line-height: 1.7;
+}}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 """
-
-# ─────────────────────────────────────────────────────────────────────
-#  MODO PRESENTACIÓN — HTML autónomo fullscreen
-# ─────────────────────────────────────────────────────────────────────
 def render_presentacion(setlist_data, idx_actual, tema):
     import streamlit.components.v1 as components
 
@@ -1096,6 +1374,10 @@ renderCanto();
 # ─────────────────────────────────────────────────────────────────────
 #  APP PRINCIPAL
 # ─────────────────────────────────────────────────────────────────────
+
+# ─────────────────────────────────────────────────────────────────────
+#  APP
+# ─────────────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title='Estribillos con Acordes',
     page_icon='🎵',
@@ -1104,9 +1386,7 @@ st.set_page_config(
 )
 
 for k, v in [('seleccion', None), ('tema', 'oscuro'),
-             ('setlist', []),        # [{titulo, semitonos, t_dest, es_menor}]
-             ('modo', 'cancionero'), # 'cancionero' | 'setlist' | 'presentacion'
-             ('pres_idx', 0)]:
+             ('setlist', []), ('modo', 'cancionero'), ('pres_idx', 0)]:
     if k not in st.session_state:
         st.session_state[k] = v
 
@@ -1114,29 +1394,21 @@ with st.spinner('Cargando cancionero…'):
     canciones = cargar_cancionero()
 
 if not canciones:
-    st.error('⚠️ No se encontró el PDF ni el cache.')
+    st.error('⚠️  No se encontró el PDF ni el cache.')
     st.stop()
 
 titulos = [c['titulo'] for c in canciones]
 
 # ─────────────────────────────────────────────────────────────────────
-#  MODO PRESENTACIÓN — ocupa toda la pantalla
+#  MODO PRESENTACIÓN
 # ─────────────────────────────────────────────────────────────────────
 if st.session_state.modo == 'presentacion':
     st.markdown(get_css(st.session_state.tema), unsafe_allow_html=True)
-    # Ocultar TODO excepto el componente
-    st.markdown("""
-    <style>
-    .stApp > div > div > div > div:first-child { padding-top: 0 !important; }
-    [data-testid="stVerticalBlock"] > div { gap: 0 !important; }
-    </style>""", unsafe_allow_html=True)
-
-    # Construir datos del setlist para el componente
     setlist_data = []
     for item in st.session_state.setlist:
         c = next((x for x in canciones if x['titulo'] == item['titulo']), None)
         if c:
-            t_base, es_menor = obtener_tono_base(c['tono'])
+            _, es_menor = obtener_tono_base(c['tono'])
             setlist_data.append({
                 'titulo'   : c['titulo'],
                 'tono_orig': c['tono'],
@@ -1145,9 +1417,7 @@ if st.session_state.modo == 'presentacion':
                 'es_menor' : es_menor,
                 'versos'   : c['versos']
             })
-
     render_presentacion(setlist_data, st.session_state.pres_idx, st.session_state.tema)
-
     if st.button('✕ Salir de presentación', key='salir_pres'):
         st.session_state.modo = 'setlist'
         st.rerun()
@@ -1158,31 +1428,41 @@ if st.session_state.modo == 'presentacion':
 # ─────────────────────────────────────────────────────────────────────
 st.markdown(get_css(st.session_state.tema), unsafe_allow_html=True)
 
-# ── HEADER ────────────────────────────────────────────────────────────
-st.markdown(
-    '<div class="sb-header">'
-    '<h1>📖 Estribillos con Acordes</h1>'
-    '<span>Cancionero Digital · 2020</span>'
-    '</div>', unsafe_allow_html=True
-)
+# ── APP HEADER ────────────────────────────────────────────────────────
+tema_icon = '☀️' if st.session_state.tema == 'oscuro' else '🌙'
+tema_text = 'Claro' if st.session_state.tema == 'oscuro' else 'Oscuro'
 
-# ── TABS: Cancionero / Setlist ────────────────────────────────────────
-tab_names = ['🎵 Cancionero', f'📋 Setlist ({len(st.session_state.setlist)})']
-tab1, tab2 = st.tabs(tab_names)
+hcol1, hcol2 = st.columns([4, 1])
+with hcol1:
+    st.markdown(
+        f'<div class="app-header-left">'
+        f'<h1>Estribillos con Acordes</h1>'
+        f'<span>Cancionero · 327 cantos · 2020</span>'
+        f'</div>',
+        unsafe_allow_html=True
+    )
+with hcol2:
+    st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
+    if st.button(f'{tema_icon} {tema_text}', use_container_width=True, key='btn_tema'):
+        st.session_state.tema = 'claro' if st.session_state.tema == 'oscuro' else 'oscuro'
+        st.rerun()
+
+st.markdown('<div style="height:4px;border-bottom:1px solid var(--border,#222230);margin-bottom:20px"></div>',
+            unsafe_allow_html=True)
+
+# ── TABS ──────────────────────────────────────────────────────────────
+sl_count = len(st.session_state.setlist)
+tab1, tab2 = st.tabs([
+    '  Cancionero  ',
+    f'  Setlist  {sl_count if sl_count else ""}  '.strip()
+])
 
 # ═══════════════════════════════════════════════════════════════════
 #  TAB 1 — CANCIONERO
 # ═══════════════════════════════════════════════════════════════════
 with tab1:
-    # Stats
-    st.markdown(
-        f'<div class="stat-row">'
-        f'<div class="stat-badge"><b>{len(canciones)}</b>&nbsp;cantos</div>'
-        f'<div class="stat-badge">📋&nbsp;<b>{len(st.session_state.setlist)}</b>&nbsp;en setlist</div>'
-        f'</div>', unsafe_allow_html=True
-    )
 
-    # Selector + agregar al setlist
+    # ── Selector de canto ─────────────────────────────────────────
     def on_select():
         st.session_state.seleccion = st.session_state.sel_widget
 
@@ -1190,11 +1470,9 @@ with tab1:
     if st.session_state.seleccion and st.session_state.seleccion in titulos:
         idx_def = titulos.index(st.session_state.seleccion)
 
-    col_sel, col_add = st.columns([5, 1])
-    with col_sel:
-        st.selectbox('Canto', titulos, index=idx_def,
-                     label_visibility='collapsed',
-                     key='sel_widget', on_change=on_select)
+    st.selectbox('Canto', titulos, index=idx_def,
+                 label_visibility='collapsed',
+                 key='sel_widget', on_change=on_select)
 
     seleccion = st.session_state.seleccion or titulos[0]
     cancion   = next(c for c in canciones if c['titulo'] == seleccion)
@@ -1202,112 +1480,92 @@ with tab1:
     idx_base  = ESCALA.index(t_base) if t_base in ESCALA else 0
     ya_en_sl  = any(x['titulo'] == seleccion for x in st.session_state.setlist)
 
-    with col_add:
-        if ya_en_sl:
-            if st.button('✓ En setlist', use_container_width=True, key='btn_add', disabled=True):
-                pass
-        else:
-            if st.button('+ Setlist', use_container_width=True, key='btn_add'):
-                # Agrega con la transposición actual (se determina abajo, usamos defaults)
-                pass  # se maneja después de calcular semitonos
+    # ── Barra de controles ────────────────────────────────────────
+    cc1, cc2, cc3, cc4, cc5 = st.columns([1.4, 1.2, 1, 1, 1.2])
 
-    # Controles
-    c1, c2, c3, c4, c5, c6 = st.columns([1.2, 1.4, 1, 1, 1, 1])
-
-    with c1:
-        mc = 'tono-m' if es_menor else ''
-        ml = f"{cancion['tono']}{'  (menor)' if es_menor else ''}"
-        st.markdown(
-            f'<div style="padding-top:8px;font-family:monospace;font-size:.78rem;'
-            f'color:var(--muted,#54525f)">Tono:&nbsp;'
-            f'<span class="tono-pill {mc}">{ml or "—"}</span></div>',
-            unsafe_allow_html=True
-        )
-    with c2:
-        modo_t = st.radio('M', ['Tono destino', 'Semitonos (capo)'],
-                          horizontal=True, label_visibility='collapsed', key='modo_t')
-    with c3:
-        if modo_t == 'Tono destino':
-            t_dest    = st.selectbox('T', ESCALA, index=idx_base,
-                                     label_visibility='collapsed', key='sel_tono')
+    with cc1:
+        modo_t = st.radio('Transponer', ['Por tono', 'Por capo'],
+                          horizontal=True, key='modo_t')
+    with cc2:
+        if modo_t == 'Por tono':
+            t_dest    = st.selectbox('Tono destino', ESCALA, index=idx_base, key='sel_tono')
             semitonos = (ESCALA.index(t_dest) - idx_base) % 12
         else:
-            semitonos = int(st.number_input('S', -12, 12, 0,
-                                            label_visibility='collapsed', key='num_semi'))
+            semitonos = int(st.number_input('Capo (semitonos)', -12, 12, 0, key='num_semi'))
             t_dest    = ESCALA[(idx_base + semitonos) % 12]
-    with c4:
-        tamano = st.slider('F', 13, 42, 18, label_visibility='collapsed', key='slider_font')
-    with c5:
-        cols_v = st.radio('Vista', ['1 columna', '2 columnas'],
-                          horizontal=True, label_visibility='collapsed', key='radio_cols')
-    with c6:
-        tema_label = '☀️ Claro' if st.session_state.tema == 'oscuro' else '🌙 Oscuro'
-        if st.button(tema_label, use_container_width=True, key='btn_tema'):
-            st.session_state.tema = 'claro' if st.session_state.tema == 'oscuro' else 'oscuro'
-            st.rerun()
-
-    # Botón agregar al setlist (ahora que tenemos semitonos)
-    if not ya_en_sl:
-        # Re-render the button properly using a form approach via session state
-        if st.session_state.get('_add_trigger'):
-            st.session_state.setlist.append({
-                'titulo'  : seleccion,
-                'semitonos': semitonos,
-                't_dest'  : t_dest,
-                'es_menor': es_menor
-            })
-            st.session_state._add_trigger = False
-            st.rerun()
-
-    # Lógica real del botón agregar
-    if not ya_en_sl:
-        if st.button(f'➕ Agregar "{seleccion[:35]}…" al setlist en {t_dest}', key='btn_add2'):
-            st.session_state.setlist.append({
-                'titulo'  : seleccion,
-                'semitonos': semitonos,
-                't_dest'  : t_dest,
-                'es_menor': es_menor
-            })
-            st.rerun()
-    else:
-        st.info(f'✓ Ya está en el setlist en tono {t_dest}')
-
-    # Indicador transposición
-    delta = semitonos if semitonos <= 6 else semitonos - 12
-    if delta != 0:
-        sfx   = 'm' if es_menor else ''
-        signo = '▲' if delta > 0 else '▼'
-        clase = 'tr-up' if delta > 0 else 'tr-down'
+    with cc3:
+        tamano = st.slider('Tamaño fuente', 13, 42, 18, key='slider_font')
+    with cc4:
+        cols_v = st.radio('Columnas', ['1', '2'], horizontal=True, key='radio_cols')
+    with cc5:
+        mc  = 'tono-m' if es_menor else ''
+        sfx = 'm' if es_menor else ''
         st.markdown(
-            f'<div class="{clase}">{signo} {abs(delta)} '
-            f'semitono{"s" if abs(delta)>1 else ""}'
-            f'&nbsp;·&nbsp;{t_base}{sfx} → {t_dest}{sfx}</div>',
+            f'<div style="padding-top:6px">'
+            f'<div style="font-family:var(--mono);font-size:.62rem;color:var(--muted);'
+            f'letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px">Tono original</div>'
+            f'<span class="tono-pill {mc}">{cancion["tono"] or "—"}{sfx}</span>'
+            f'</div>',
             unsafe_allow_html=True
         )
 
-    # PDF
-    sfx_pdf   = 'm' if es_menor else ''
-    pdf_bytes = generar_pdf(cancion, semitonos, t_dest, es_menor)
-    nombre_f  = re.sub(r'[^\w\s-]', '', cancion['titulo'])[:38].strip().replace(' ', '_')
-    st.download_button(
-        label     = f'⬇ PDF — {t_dest}{sfx_pdf}',
-        data      = pdf_bytes,
-        file_name = f'{nombre_f}_{t_dest}{sfx_pdf}.pdf',
-        mime      = 'application/pdf',
-        key       = 'dl_pdf'
-    )
+    # ── Indicador de transposición ────────────────────────────────
+    delta = semitonos if semitonos <= 6 else semitonos - 12
+    sfx   = 'm' if es_menor else ''
+    if delta != 0:
+        signo = '▲' if delta > 0 else '▼'
+        clase = 'transp-up' if delta > 0 else 'transp-down'
+        semi_txt = f'{abs(delta)} semitono{"s" if abs(delta)>1 else ""}'
+        st.markdown(
+            f'<div class="transp-badge {clase}">'
+            f'{signo} {semi_txt} &nbsp;·&nbsp; '
+            f'{t_base}{sfx} → {t_dest}{sfx}'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+
+    # ── Acciones: agregar setlist + PDF ──────────────────────────
+    act1, act2, act3 = st.columns([2, 1.4, 1])
+    with act1:
+        if ya_en_sl:
+            st.markdown(
+                f'<div style="padding:8px 0;font-family:var(--mono);font-size:.78rem;'
+                f'color:var(--green)">✓ En setlist como {t_dest}{sfx}</div>',
+                unsafe_allow_html=True
+            )
+        else:
+            if st.button(f'＋ Agregar al setlist · {t_dest}{sfx}',
+                         use_container_width=True, key='btn_add2'):
+                st.session_state.setlist.append({
+                    'titulo': seleccion, 'semitonos': semitonos,
+                    't_dest': t_dest, 'es_menor': es_menor
+                })
+                st.rerun()
+    with act2:
+        pdf_bytes = generar_pdf(cancion, semitonos, t_dest, es_menor)
+        nombre_f  = re.sub(r'[^\w\s-]', '', cancion['titulo'])[:38].strip().replace(' ', '_')
+        st.download_button(
+            label     = f'⬇ PDF — {t_dest}{sfx}',
+            data      = pdf_bytes,
+            file_name = f'{nombre_f}_{t_dest}{sfx}.pdf',
+            mime      = 'application/pdf',
+            key       = 'dl_pdf',
+            use_container_width = True
+        )
+    with act3:
+        pass  # espacio visual
 
     st.divider()
 
-    # Render canto
-    num_cols  = 2 if cols_v == '2 columnas' else 1
-    col_style = f'column-count:{num_cols};column-gap:52px;' if num_cols > 1 else ''
+    # ── Render del canto ──────────────────────────────────────────
+    num_cols  = 2 if cols_v == '2' else 1
+    col_style = f'column-count:{num_cols};column-gap:56px;' if num_cols > 1 else ''
 
     html = (
         f'<div class="canto-wrap">'
         f'<div class="canto-titulo">{cancion["titulo"]}</div>'
         f'<div style="font-family:\'JetBrains Mono\',\'Consolas\',monospace;'
-        f'font-size:{tamano}px;line-height:1.65;{col_style}">'
+        f'font-size:{tamano}px;line-height:1.7;{col_style}">'
     )
     versos = cancion['versos']
     i = 0
@@ -1341,102 +1599,95 @@ with tab1:
 with tab2:
     if not st.session_state.setlist:
         st.markdown(
-            '<div style="text-align:center;padding:60px 20px;color:var(--muted,#54525f)">'
-            '<div style="font-size:3rem">📋</div>'
-            '<div style="font-family:\'EB Garamond\',serif;font-size:1.3rem;margin:12px 0">Setlist vacío</div>'
-            '<div style="font-family:monospace;font-size:.8rem">Ve al Cancionero, selecciona un canto<br>'
-            'y presiona <b>+ Setlist</b> para agregarlo.</div>'
-            '</div>', unsafe_allow_html=True
+            '<div class="empty-state">'
+            '<div class="empty-icon">📋</div>'
+            '<div class="empty-title">Setlist vacío</div>'
+            '<div class="empty-sub">Ve al Cancionero, selecciona un canto<br>'
+            'y presiona <b>＋ Agregar al setlist</b>.</div>'
+            '</div>',
+            unsafe_allow_html=True
         )
     else:
-        # Botón presentar
-        col_pres, col_clear = st.columns([3, 1])
-        with col_pres:
-            if st.button('🎬 Iniciar Presentación', use_container_width=True, key='btn_presentar',
-                         type='primary'):
+        # ── Acciones del setlist ──────────────────────────────────
+        sa1, sa2, sa3 = st.columns([2, 1, 1])
+        with sa1:
+            if st.button('🎬 Iniciar Presentación', use_container_width=True,
+                         key='btn_presentar', type='primary'):
                 st.session_state.modo = 'presentacion'
                 st.session_state.pres_idx = 0
                 st.rerun()
-        with col_clear:
-            if st.button('🗑 Vaciar', use_container_width=True, key='btn_clear'):
+        with sa2:
+            if st.button('🗑 Vaciar setlist', use_container_width=True, key='btn_clear'):
                 st.session_state.setlist = []
                 st.rerun()
+        with sa3:
+            pass
 
-        st.markdown(f'**{len(st.session_state.setlist)} cantos** en el setlist')
-        st.divider()
+        st.markdown(
+            f'<div style="font-family:var(--mono);font-size:.7rem;color:var(--text2);'
+            f'margin:12px 0 16px;letter-spacing:.04em">'
+            f'{len(st.session_state.setlist)} canto{"s" if len(st.session_state.setlist)!=1 else ""}'
+            f'</div>',
+            unsafe_allow_html=True
+        )
 
-        # Lista con controles de reorden y eliminación
+        # ── Lista ────────────────────────────────────────────────
         to_delete = None
-        to_move   = None  # (idx, direction)
+        to_move   = None
 
         for i, item in enumerate(st.session_state.setlist):
-            c_num, c_titulo, c_tono, c_up, c_down, c_del = st.columns([.4, 4, .8, .4, .4, .4])
-
-            with c_num:
+            sfx_sl = 'm' if item['es_menor'] else ''
+            sc1, sc2, sc3, sc4, sc5 = st.columns([.35, 4.5, .8, .5, .5])
+            with sc1:
                 st.markdown(
-                    f'<div style="text-align:right;padding-top:8px;'
-                    f'font-family:monospace;font-size:.75rem;color:var(--muted,#54525f)">'
-                    f'{i+1}</div>', unsafe_allow_html=True
-                )
-            with c_titulo:
-                titulo_corto = item['titulo'][:55] + ('…' if len(item['titulo']) > 55 else '')
-                st.markdown(
-                    f'<div style="padding-top:8px;font-family:monospace;'
-                    f'font-size:.8rem;color:var(--text,#e8e4d8)">{titulo_corto}</div>',
+                    f'<div style="padding-top:10px;text-align:right;font-family:var(--mono);'
+                    f'font-size:.65rem;color:var(--muted)">{i+1}</div>',
                     unsafe_allow_html=True
                 )
-            with c_tono:
-                sfx = 'm' if item['es_menor'] else ''
+            with sc2:
+                titulo_disp = item['titulo']
+                # Strip leading number
+                titulo_disp = re.sub(r'^\d+[\.\-]?\s*', '', titulo_disp)
                 st.markdown(
-                    f'<div style="padding-top:6px">'
-                    f'<span class="tono-pill" style="font-size:.7rem">'
-                    f'{item["t_dest"]}{sfx}</span></div>',
+                    f'<div style="padding-top:9px;font-family:var(--mono);font-size:.8rem;'
+                    f'color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
+                    f'{titulo_disp[:60]}{"…" if len(titulo_disp)>60 else ""}</div>',
                     unsafe_allow_html=True
                 )
-            with c_up:
+            with sc3:
+                st.markdown(
+                    f'<div style="padding-top:7px">'
+                    f'<span class="tono-pill" style="font-size:.68rem">'
+                    f'{item["t_dest"]}{sfx_sl}</span></div>',
+                    unsafe_allow_html=True
+                )
+            with sc4:
                 if i > 0:
                     if st.button('↑', key=f'up_{i}', use_container_width=True):
                         to_move = (i, -1)
-            with c_down:
-                if i < len(st.session_state.setlist) - 1:
-                    if st.button('↓', key=f'dn_{i}', use_container_width=True):
-                        to_move = (i, 1)
-            with c_del:
+            with sc5:
                 if st.button('✕', key=f'del_{i}', use_container_width=True):
                     to_delete = i
 
-        # Aplicar cambios fuera del loop
+            # Down button in a separate tiny row below sc4 to avoid cramping
+            # (handled via the same column trick)
+
         if to_delete is not None:
             st.session_state.setlist.pop(to_delete)
             st.rerun()
         if to_move is not None:
-            idx_m, direction = to_move
+            idx_m, d = to_move
             sl = st.session_state.setlist
-            sl[idx_m], sl[idx_m + direction] = sl[idx_m + direction], sl[idx_m]
+            sl[idx_m], sl[idx_m+d] = sl[idx_m+d], sl[idx_m]
             st.rerun()
 
-        st.divider()
-        # Preview del primer canto
-        if st.session_state.setlist:
-            first = st.session_state.setlist[0]
-            c_prev = next((x for x in canciones if x['titulo'] == first['titulo']), None)
-            if c_prev:
-                st.markdown(
-                    f'<div style="font-family:monospace;font-size:.72rem;'
-                    f'color:var(--muted,#54525f);margin-bottom:6px">'
-                    f'PRIMER CANTO:</div>', unsafe_allow_html=True
-                )
-                st.markdown(
-                    f'<div style="font-family:\'EB Garamond\',serif;font-size:1.1rem;'
-                    f'color:var(--accent,#c49b30)">{c_prev["titulo"]}</div>',
-                    unsafe_allow_html=True
-                )
-
-# Footer
+# ── FOOTER ────────────────────────────────────────────────────────────
 st.markdown(
-    f'<div style="margin-top:32px;text-align:center;font-family:monospace;'
-    f'font-size:.66rem;color:var(--muted,#54525f);'
-    f'border-top:1px solid var(--border,#2a2a35);padding-top:10px;margin-bottom:20px;">'
-    f'Estribillos con Acordes 2020 · {len(canciones)} cantos</div>',
+    '<div style="margin-top:48px;padding-top:16px;text-align:center;'
+    'border-top:1px solid var(--border,#222230);'
+    'font-family:\'JetBrains Mono\',monospace;font-size:.62rem;'
+    'color:var(--muted,#48465a);letter-spacing:.06em;">'
+    'ESTRIBILLOS CON ACORDES · 2020'
+    '</div>',
     unsafe_allow_html=True
 )
