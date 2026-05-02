@@ -1439,7 +1439,7 @@ with tab1:
     with cc3:
         pass  # tamaño adaptativo via CSS clamp()
     with cc4:
-        cols_v = st.radio('Columnas', ['1', '2'], horizontal=True, key='radio_cols')
+        pass  # columnas radio se renderiza abajo
     with cc4:
         mc  = 'tono-m' if es_menor else ''
         sfx = 'm' if es_menor else ''
